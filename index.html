@@ -4,481 +4,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="FODMAP food checker — find safe foods for IBS">
+  <meta name="description" content="FODMAP food checker — find safe foods for IBS using Monash &amp; FODMAP Friendly data">
   <title>FODMAP Checker</title>
   <style>
     :root {
-      --low:          #388e3c;
-      --low-bg:       #e8f5e9;
-      --low-text:     #1b5e20;
-      --moderate:     #e65100;
-      --moderate-bg:  #fff3e0;
-      --moderate-text:#bf360c;
-      --high:         #c62828;
-      --high-bg:      #ffebee;
-      --high-text:    #b71c1c;
-      --unknown:      #757575;
-      --bg:           #f0f2f5;
-      --surface:      #ffffff;
-      --text:         #212121;
-      --text-muted:   #757575;
-      --border:       #e0e0e0;
-      --accent:       #1565c0;
-      --accent-light: #e3f2fd;
-      --header-bg:    #1565c0;
-      --header-text:  #ffffff;
-      --shadow-sm:    0 1px 3px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.16);
-      --radius:       8px;
+      --low:#388e3c; --low-bg:#e8f5e9; --low-text:#1b5e20;
+      --moderate:#e65100; --moderate-bg:#fff3e0; --moderate-text:#bf360c;
+      --high:#c62828; --high-bg:#ffebee; --high-text:#b71c1c;
+      --unknown:#757575;
+      --bg:#f0f2f5; --surface:#fff; --text:#212121; --text-muted:#757575;
+      --border:#e0e0e0; --accent:#1565c0; --accent-light:#e3f2fd;
+      --header-bg:#1565c0; --header-text:#fff;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.16);
+      --radius:8px;
     }
+    @media(prefers-color-scheme:dark){:root{
+      --low:#66bb6a;--low-bg:#1b3320;--low-text:#a5d6a7;
+      --moderate:#ffa726;--moderate-bg:#2e1a00;--moderate-text:#ffcc80;
+      --high:#ef5350;--high-bg:#2a0a0a;--high-text:#ef9a9a;
+      --bg:#111316;--surface:#1e2126;--text:#e0e0e0;--text-muted:#9e9e9e;
+      --border:#2e3238;--accent:#42a5f5;--accent-light:#0d2040;
+      --header-bg:#0d2040;--header-text:#e0e0e0;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+    }}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --low:          #66bb6a;
-        --low-bg:       #1b3320;
-        --low-text:     #a5d6a7;
-        --moderate:     #ffa726;
-        --moderate-bg:  #2e1a00;
-        --moderate-text:#ffcc80;
-        --high:         #ef5350;
-        --high-bg:      #2a0a0a;
-        --high-text:    #ef9a9a;
-        --unknown:      #9e9e9e;
-        --bg:           #111316;
-        --surface:      #1e2126;
-        --text:         #e0e0e0;
-        --text-muted:   #9e9e9e;
-        --border:       #2e3238;
-        --accent:       #42a5f5;
-        --accent-light: #0d2040;
-        --header-bg:    #0d2040;
-        --header-text:  #e0e0e0;
-        --shadow-sm:    0 1px 3px rgba(0,0,0,.4);
-      }
-    }
+    .app-header{background:var(--header-bg);color:var(--header-text);padding:10px 16px 0;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+    .app-title{font-size:1rem;font-weight:700;margin-bottom:6px;letter-spacing:.02em}
+    .tab-bar{display:flex}
+    .tab-btn{flex:1;padding:10px 4px;background:0 0;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.65);font-size:.82rem;font-weight:500;cursor:pointer;transition:color .15s,border-color .15s;white-space:nowrap}
+    .tab-btn.active{color:#fff;border-bottom-color:#fff}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    .view{display:none}.view.active{display:block}
+    .view-inner{max-width:680px;margin:0 auto;padding:12px}
+    .search-wrap{position:sticky;top:0;z-index:100;background:var(--bg);padding:12px 0 8px;margin-top:-4px}
+    .search-input{width:100%;padding:11px 14px;font-size:.95rem;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:0;transition:border-color .15s}
+    .search-input:focus{border-color:var(--accent)}
+    .search-input::placeholder{color:var(--text-muted)}
+    .result-info{font-size:.75rem;color:var(--text-muted);margin-bottom:8px;padding:0 2px}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      font-size: 15px;
-    }
+    .food-card{background:var(--surface);border-radius:var(--radius);margin-bottom:7px;box-shadow:var(--shadow-sm);overflow:hidden;border:1px solid var(--border);transition:border-color .15s}
+    .food-card.expanded{border-color:var(--accent)}
+    .food-card.caution{border-left:3px solid var(--high)}
+    .food-card.safe-mark{border-left:3px solid var(--low)}
+    .card-header{display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;user-select:none}
+    .card-header:active{background:var(--bg)}
+    .rating-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+    .dot-low{background:var(--low)}.dot-moderate{background:var(--moderate)}.dot-high{background:var(--high)}
+    .card-name{flex:1;font-size:.9rem;font-weight:500;line-height:1.2}
+    .food-emoji{font-size:1.15rem;line-height:1;flex-shrink:0}
 
-    /* ── HEADER ── */
-    .app-header {
-      background: var(--header-bg);
-      color: var(--header-text);
-      padding: 10px 16px 0;
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      box-shadow: 0 2px 6px rgba(0,0,0,.25);
-    }
-    .app-title { font-size: 1rem; font-weight: 700; margin-bottom: 6px; letter-spacing: .02em; }
-    .tab-bar { display: flex; }
-    .tab-btn {
-      flex: 1;
-      padding: 10px 4px;
-      background: transparent;
-      border: none;
-      border-bottom: 3px solid transparent;
-      color: rgba(255,255,255,.65);
-      font-size: .82rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: color .15s, border-color .15s;
-      white-space: nowrap;
-    }
-    .tab-btn.active { color: #fff; border-bottom-color: #fff; }
+    .badge{font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+    .badge-low{background:var(--low-bg);color:var(--low-text)}
+    .badge-moderate{background:var(--moderate-bg);color:var(--moderate-text)}
+    .badge-high{background:var(--high-bg);color:var(--high-text)}
+    .badge-unknown{background:var(--bg);color:var(--text-muted);border:1px solid var(--border)}
 
-    /* ── VIEWS ── */
-    .view { display: none; }
-    .view.active { display: block; }
-    .view-inner {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 12px;
-    }
+    .sg-chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 13px 9px}
+    .sg-chip{font-size:.66rem;font-weight:600;padding:2px 7px;border-radius:10px}
 
-    /* ── SEARCH BAR ── */
-    .search-wrap {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--bg);
-      padding: 12px 0 8px;
-      margin-top: -4px;
-    }
-    .search-input {
-      width: 100%;
-      padding: 11px 14px;
-      font-size: .95rem;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s;
-    }
-    .search-input:focus { border-color: var(--accent); }
-    .search-input::placeholder { color: var(--text-muted); }
+    .card-detail{display:none;padding:0 13px 13px;border-top:1px solid var(--border)}
+    .food-card.expanded .card-detail,.browse-card.expanded .card-detail{display:block}
+    .card-meta{font-size:.75rem;color:var(--text-muted);margin:8px 0 10px}
+    .card-meta span:not(:last-child)::after{content:' · '}
 
-    .result-info {
-      font-size: .75rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      padding: 0 2px;
-    }
+    /* Source comparison blocks */
+    .src-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+    .src-hdr{display:flex;align-items:center;gap:6px;background:var(--bg);padding:6px 10px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);border-bottom:1px solid var(--border)}
+    .src-hdr a{color:var(--accent);font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;margin-left:auto}
+    .src-body{padding:8px 10px;font-size:.8rem}
+    .src-body .sg-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)}
+    .src-body .sg-row:last-child{border-bottom:none}
+    .src-body .sg-name{font-weight:500}
+    .src-body .sg-cat{font-size:.68rem;color:var(--text-muted)}
+    .src-body .low-serve{font-size:.76rem;color:var(--text-muted);margin-top:6px;font-style:italic}
+    .src-body .src-note{font-size:.76rem;color:var(--text-muted);margin-top:4px}
+    .agreement{font-size:.76rem;padding:6px 10px;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .agreement.agree{background:var(--low-bg);color:var(--low-text)}
+    .agreement.disagree{background:var(--moderate-bg);color:var(--moderate-text)}
+    .agreement.partial{background:var(--accent-light);color:var(--accent)}
 
-    /* ── FOOD CARDS ── */
-    .food-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      margin-bottom: 7px;
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-      border: 1px solid var(--border);
-      transition: border-color .15s;
-    }
-    .food-card.expanded { border-color: var(--accent); }
-    .food-card.caution  { border-left: 3px solid var(--high); }
-    .food-card.safe-mark { border-left: 3px solid var(--low); }
+    .card-notes{font-size:.77rem;color:var(--text-muted);font-style:italic;padding-top:8px;border-top:1px solid var(--border);line-height:1.5}
+    .card-notes::before{content:'💡 ';font-style:normal}
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 11px 13px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .card-header:active { background: var(--bg); }
+    .section-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:16px 0 8px 2px}
+    .trigger-hint{font-size:.78rem;color:var(--text-muted);margin-bottom:10px}
+    .trigger-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:14px}
+    @media(min-width:420px){.trigger-grid{grid-template-columns:repeat(3,1fr)}}
+    @media(min-width:600px){.trigger-grid{grid-template-columns:repeat(6,1fr)}}
+    .trig-btn{padding:10px 6px;border-radius:var(--radius);border:2px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:border-color .15s,background .15s;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+    .trig-name{font-size:.8rem;font-weight:700;color:var(--text)}
+    .trig-category{font-size:.63rem;color:var(--text-muted)}
+    .trig-state{font-size:.68rem;font-weight:700;margin-top:3px}
+    .trig-btn[data-state="problematic"]{border-color:var(--high);background:var(--high-bg)}
+    .trig-btn[data-state="problematic"] .trig-state{color:var(--high-text)}
+    .trig-btn[data-state="safe"]{border-color:var(--low);background:var(--low-bg)}
+    .trig-btn[data-state="safe"] .trig-state{color:var(--low-text)}
+    .trig-btn[data-state="unknown"] .trig-state{color:var(--text-muted)}
+    .filter-summary{font-size:.8rem;color:var(--text-muted);padding:10px 12px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;line-height:1.6}
+    .results-section-hdr{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:10px 2px 6px;display:flex;align-items:center;gap:7px}
+    .rsh-count{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:.68rem;font-weight:600}
 
-    .rating-dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .dot-low      { background: var(--low); }
-    .dot-moderate { background: var(--moderate); }
-    .dot-high     { background: var(--high); }
+    .group-btns{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+    .grp-btn{padding:7px 14px;border-radius:20px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:1px}
+    .grp-btn small{font-size:.63rem;color:var(--text-muted);font-weight:400}
+    .grp-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+    .grp-btn.active small{color:rgba(255,255,255,.75)}
+    .level-block{margin-bottom:12px}
+    .level-hdr{display:flex;align-items:center;gap:8px;padding:6px 0 5px}
+    .level-hdr-line{flex:1;height:1px;background:var(--border)}
+    .level-hdr-count{font-size:.7rem;color:var(--text-muted)}
+    .browse-card{background:var(--surface);border-radius:var(--radius);margin-bottom:6px;box-shadow:var(--shadow-sm);overflow:hidden;border:1px solid var(--border);cursor:pointer}
+    .browse-card.expanded{border-color:var(--accent)}
 
-    .card-name {
-      flex: 1;
-      font-size: .9rem;
-      font-weight: 500;
-      line-height: 1.2;
-    }
-
-    .badge {
-      font-size: .65rem;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 4px;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .badge-low      { background: var(--low-bg);      color: var(--low-text); }
-    .badge-moderate { background: var(--moderate-bg); color: var(--moderate-text); }
-    .badge-high     { background: var(--high-bg);     color: var(--high-text); }
-    .badge-unknown  { background: var(--bg);          color: var(--text-muted); border: 1px solid var(--border); }
-
-    .sg-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      padding: 0 13px 9px;
-    }
-    .sg-chip {
-      font-size: .66rem;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 10px;
-    }
-
-    /* ── CARD DETAIL (expanded) ── */
-    .card-detail {
-      display: none;
-      padding: 0 13px 13px;
-      border-top: 1px solid var(--border);
-    }
-    .food-card.expanded .card-detail,
-    .browse-card.expanded .card-detail { display: block; }
-
-    .card-meta {
-      font-size: .75rem;
-      color: var(--text-muted);
-      margin: 8px 0 10px;
-    }
-    .card-meta span:not(:last-child)::after { content: ' · '; }
-
-    .fodmap-tbl {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .8rem;
-      margin-bottom: 8px;
-    }
-    .fodmap-tbl th {
-      text-align: left;
-      padding: 5px 7px;
-      background: var(--bg);
-      font-size: .7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      color: var(--text-muted);
-    }
-    .fodmap-tbl td {
-      padding: 6px 7px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-    .fodmap-tbl tr:last-child td { border-bottom: none; }
-    .fodmap-tbl .sg-cat { font-size: .68rem; color: var(--text-muted); }
-    .fodmap-tbl .amt    { color: var(--text-muted); font-size: .78rem; }
-    .fodmap-tbl .amt em { font-style: italic; opacity: .7; }
-
-    .card-notes {
-      font-size: .77rem;
-      color: var(--text-muted);
-      font-style: italic;
-      padding-top: 8px;
-      border-top: 1px solid var(--border);
-      line-height: 1.5;
-    }
-    .card-notes::before { content: '💡 '; font-style: normal; }
-
-    /* ── SECTION HEADERS (triggers view) ── */
-    .section-label {
-      font-size: .68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--text-muted);
-      margin: 16px 0 8px 2px;
-    }
-
-    .trigger-hint {
-      font-size: .78rem;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-    }
-
-    .trigger-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 7px;
-      margin-bottom: 14px;
-    }
-    @media (min-width: 420px) { .trigger-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (min-width: 600px) { .trigger-grid { grid-template-columns: repeat(6, 1fr); } }
-
-    .trig-btn {
-      padding: 10px 6px;
-      border-radius: var(--radius);
-      border: 2px solid var(--border);
-      background: var(--surface);
-      cursor: pointer;
-      text-align: center;
-      transition: border-color .15s, background .15s;
-      min-height: 72px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-    }
-    .trig-name     { font-size: .8rem; font-weight: 700; color: var(--text); }
-    .trig-category { font-size: .63rem; color: var(--text-muted); }
-    .trig-state    { font-size: .68rem; font-weight: 700; margin-top: 3px; }
-
-    .trig-btn[data-state="problematic"] {
-      border-color: var(--high); background: var(--high-bg);
-    }
-    .trig-btn[data-state="problematic"] .trig-state { color: var(--high-text); }
-
-    .trig-btn[data-state="safe"] {
-      border-color: var(--low); background: var(--low-bg);
-    }
-    .trig-btn[data-state="safe"] .trig-state { color: var(--low-text); }
-
-    .trig-btn[data-state="unknown"] .trig-state { color: var(--text-muted); }
-
-    .filter-summary {
-      font-size: .8rem;
-      color: var(--text-muted);
-      padding: 10px 12px;
-      background: var(--surface);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      margin-bottom: 12px;
-      line-height: 1.6;
-    }
-
-    .results-section-hdr {
-      font-size: .72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      padding: 10px 2px 6px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .rsh-count {
-      background: var(--bg);
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1px 7px;
-      font-size: .68rem;
-      font-weight: 600;
-    }
-
-    /* ── BROWSE VIEW ── */
-    .group-btns {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      margin-bottom: 14px;
-    }
-    .grp-btn {
-      padding: 7px 14px;
-      border-radius: 20px;
-      border: 2px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: .8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .15s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1px;
-    }
-    .grp-btn small { font-size: .63rem; color: var(--text-muted); font-weight: 400; }
-    .grp-btn.active { border-color: var(--accent); background: var(--accent); color: #fff; }
-    .grp-btn.active small { color: rgba(255,255,255,.75); }
-
-    .level-block { margin-bottom: 12px; }
-    .level-hdr {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0 5px;
-    }
-    .level-hdr-line {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-    .level-hdr-count { font-size: .7rem; color: var(--text-muted); }
-
-    .browse-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      margin-bottom: 6px;
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-      border: 1px solid var(--border);
-      cursor: pointer;
-    }
-    .browse-card.expanded { border-color: var(--accent); }
-
-    /* ── EMPTY STATES ── */
-    .empty {
-      text-align: center;
-      padding: 48px 16px 32px;
-      color: var(--text-muted);
-    }
-    .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
-    .empty-text { font-size: .88rem; line-height: 1.6; }
-
-    /* ── FOOTER ── */
-    .app-footer {
-      margin: 28px 0 0;
-      padding: 14px 16px;
-      text-align: center;
-      font-size: .69rem;
-      color: var(--text-muted);
-      border-top: 1px solid var(--border);
-      line-height: 1.7;
-      background: var(--surface);
-    }
-
-    .food-emoji { font-size: 1.15rem; line-height: 1; flex-shrink: 0; }
-
-    .sources-toggle {
-      background: none;
-      border: none;
-      color: var(--accent);
-      font-size: .72rem;
-      cursor: pointer;
-      text-decoration: underline;
-      padding: 0;
-      margin-top: 6px;
-    }
-    .sources-panel {
-      display: none;
-      text-align: left;
-      max-width: 600px;
-      margin: 10px auto 0;
-      padding: 12px;
-      background: var(--bg);
-      border-radius: var(--radius);
-      font-size: .72rem;
-      line-height: 1.8;
-    }
-    .sources-panel.open { display: block; }
-    .sources-panel a { color: var(--accent); }
-    .sources-panel li { margin-bottom: 4px; }
-
-    noscript {
-      display: block;
-      padding: 32px;
-      text-align: center;
-      font-size: 1rem;
-    }
-
-    /* ── DESKTOP ── */
-    @media (min-width: 720px) {
-      .view-inner { padding: 16px; }
-    }
+    .empty{text-align:center;padding:48px 16px 32px;color:var(--text-muted)}
+    .empty-icon{font-size:2.5rem;margin-bottom:10px}.empty-text{font-size:.88rem;line-height:1.6}
+    .app-footer{margin:28px 0 0;padding:14px 16px;text-align:center;font-size:.69rem;color:var(--text-muted);border-top:1px solid var(--border);line-height:1.7;background:var(--surface)}
+    .sources-toggle{background:0 0;border:none;color:var(--accent);font-size:.72rem;cursor:pointer;text-decoration:underline;padding:0;margin-top:6px}
+    .sources-panel{display:none;text-align:left;max-width:600px;margin:10px auto 0;padding:12px;background:var(--bg);border-radius:var(--radius);font-size:.72rem;line-height:1.8}
+    .sources-panel.open{display:block}
+    .sources-panel a{color:var(--accent)}
+    noscript{display:block;padding:32px;text-align:center;font-size:1rem}
+    @media(min-width:720px){.view-inner{padding:16px}}
   </style>
 </head>
 <body>
-<noscript>This app requires JavaScript. Please enable it in your browser settings.</noscript>
-
+<noscript>This app requires JavaScript.</noscript>
 <header class="app-header">
   <div class="app-title">🥦 FODMAP Checker</div>
   <nav class="tab-bar" role="tablist">
-    <button class="tab-btn active" data-tab="search"   role="tab" aria-selected="true">Search</button>
-    <button class="tab-btn"        data-tab="triggers" role="tab">My Triggers</button>
-    <button class="tab-btn"        data-tab="browse"   role="tab">By Group</button>
+    <button class="tab-btn active" data-tab="search" role="tab" aria-selected="true">Search</button>
+    <button class="tab-btn" data-tab="triggers" role="tab">My Triggers</button>
+    <button class="tab-btn" data-tab="browse" role="tab">By Group</button>
   </nav>
 </header>
-
-<main id="app">
-  <!-- VIEW 1: SEARCH -->
+<main>
   <div class="view active" id="view-search" role="tabpanel">
     <div class="view-inner">
-      <div class="search-wrap">
-        <input id="searchInput" type="search" class="search-input"
-               placeholder="Search foods, e.g. apple, garlic, milk…"
-               autocomplete="off" autocorrect="off" spellcheck="false" inputmode="search">
-      </div>
+      <div class="search-wrap"><input id="searchInput" type="search" class="search-input" placeholder="Search foods, e.g. apple, garlic, milk…" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="search"></div>
       <div class="result-info" id="resultInfo"></div>
       <div id="searchResults"></div>
     </div>
   </div>
-
-  <!-- VIEW 2: MY TRIGGERS -->
   <div class="view" id="view-triggers" role="tabpanel">
     <div class="view-inner">
       <div class="section-label">Which FODMAP groups cause you symptoms?</div>
@@ -488,8 +156,6 @@
       <div id="triggersResults"></div>
     </div>
   </div>
-
-  <!-- VIEW 3: BROWSE BY GROUP -->
   <div class="view" id="view-browse" role="tabpanel">
     <div class="view-inner">
       <div class="section-label">Browse by FODMAP group</div>
@@ -498,991 +164,908 @@
     </div>
   </div>
 </main>
-
 <footer class="app-footer">
-  <strong>Medical disclaimer:</strong> For informational purposes only. Always consult a registered dietitian before starting a FODMAP diet.<br>
-  Amounts are approximate. Individual tolerance varies. Last updated April 2026.<br>
-  <button class="sources-toggle" onclick="document.getElementById('sourcesPanel').classList.toggle('open')">View data sources &amp; references</button>
+  <strong>Medical disclaimer:</strong> For informational purposes only. Always consult a registered dietitian.<br>
+  Data from <strong>Monash University</strong> and <strong>FODMAP Friendly</strong> public guides. Last updated April 2026.<br>
+  For detailed per-serve amounts, see the Monash FODMAP app (~$8 AUD) or FODMAP Friendly app.<br>
+  <button class="sources-toggle" onclick="document.getElementById('sourcesPanel').classList.toggle('open')">View data sources</button>
   <div class="sources-panel" id="sourcesPanel">
-    <strong>Data sources (amounts &amp; FODMAP levels):</strong>
+    <strong>Data sources:</strong>
     <ol>
-      <li><strong>Varney et al. 2017</strong> — "FODMAPs: food composition, defining cutoff values and international application."
-        <em>J Gastroenterol Hepatol</em>, 32(S1), 53–61.
-        <a href="https://doi.org/10.1111/jgh.13698" target="_blank" rel="noopener">doi:10.1111/jgh.13698</a></li>
-      <li><strong>Muir et al. 2009</strong> — "Fructan and Free Fructose Content of Common Australian Vegetables and Fruit."
-        <em>J Agric Food Chem</em>, 57(2), 554–565.
-        <a href="https://doi.org/10.1021/jf802700e" target="_blank" rel="noopener">doi:10.1021/jf802700e</a></li>
-      <li><strong>Biesiekierski et al. 2011</strong> — "Quantification of Fructans, Galacto‐Oligosaccharides and Other Short‐Chain Carbohydrates in Processed Grains and Cereals."
-        <em>J Hum Nutr Diet</em>, 24(2), 154–176.
-        <a href="https://doi.org/10.1111/j.1365-277X.2010.01121.x" target="_blank" rel="noopener">doi:10.1111/j.1365-277X.2010.01121.x</a></li>
-      <li><strong>Ispiryan et al. 2020</strong> — "Presence of FODMAPs in Commonly Eaten Foods: Extension of a Database."
-        <em>Nutrients</em>, 12(10), 2891.
-        <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7599874/" target="_blank" rel="noopener">PMC7599874</a></li>
-      <li><strong>Monash University FODMAP Team</strong> — FODMAP food guide and dietary thresholds.
-        <a href="https://www.monashfodmap.com/about-fodmap-and-ibs/high-and-low-fodmap-foods/" target="_blank" rel="noopener">monashfodmap.com</a></li>
-      <li><strong>Open-source FODMAP database</strong> (scaffold) —
-        <a href="https://github.com/oseparovic/fodmap_list" target="_blank" rel="noopener">oseparovic/fodmap_list</a> (GitHub)</li>
+      <li><strong>Monash University FODMAP</strong> — Public food guide: high/low FODMAP lists, subgroup categorization, serving guidance.<br>
+        <a href="https://www.monashfodmap.com/about-fodmap-and-ibs/high-and-low-fodmap-foods/" target="_blank" rel="noopener">monashfodmap.com — High and Low FODMAP Foods</a></li>
+      <li><strong>FODMAP Friendly</strong> — Certification program and public food guide.<br>
+        <a href="https://fodmapfriendly.com/for-consumers/foods-high-low-fodmap/" target="_blank" rel="noopener">fodmapfriendly.com — Foods High/Low in FODMAPs</a></li>
     </ol>
-    <p style="margin-top:6px">Level thresholds (low/moderate/high per serving) follow the Monash University cutoff methodology described in Varney et al. 2017.
-    Per-100g amounts are drawn from the papers above; where no published figure was available, the field shows "No data."</p>
+    <p style="margin-top:6px">Level thresholds (low/moderate/high per serving) follow the Monash University traffic-light system.
+    FODMAP Friendly uses a separate lab-testing protocol. Where the two sources disagree, both assessments are shown.
+    Per-100g gram amounts are not publicly available from either database — use their paid apps for detailed figures.</p>
   </div>
 </footer>
-
 <script>
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 1. SUBGROUP DEFINITIONS
-// ═══════════════════════════════════════════════════
-const SG = {
-  fructans: { id:'fructans', name:'Fructans',       cat:'Oligosaccharide' },
-  gos:      { id:'gos',      name:'GOS',             cat:'Oligosaccharide' },
-  lactose:  { id:'lactose',  name:'Lactose',         cat:'Disaccharide'   },
-  fructose: { id:'fructose', name:'Excess Fructose', cat:'Monosaccharide' },
-  sorbitol: { id:'sorbitol', name:'Sorbitol',        cat:'Polyol'         },
-  mannitol: { id:'mannitol', name:'Mannitol',        cat:'Polyol'         },
+// ═══════════════════════════════════════════════
+const SG={
+  fructans:{id:'fructans',name:'Fructans',cat:'Oligosaccharide'},
+  gos:{id:'gos',name:'GOS',cat:'Oligosaccharide'},
+  lactose:{id:'lactose',name:'Lactose',cat:'Disaccharide'},
+  fructose:{id:'fructose',name:'Excess Fructose',cat:'Monosaccharide'},
+  sorbitol:{id:'sorbitol',name:'Sorbitol',cat:'Polyol'},
+  mannitol:{id:'mannitol',name:'Mannitol',cat:'Polyol'},
 };
-const SG_KEYS = Object.keys(SG);
+const SG_KEYS=Object.keys(SG);
 
-// ═══════════════════════════════════════════════════
-// 1b. EMOJI ICONS (per food id → emoji character)
-// ═══════════════════════════════════════════════════
-const EMOJI = {
-  // Fruits
-  apple:'\u{1F34E}',pear:'\u{1F350}',mango:'\u{1F96D}',watermelon:'\u{1F349}',
-  peach:'\u{1F351}',nectarine:'\u{1F351}',plum:'\u{1F351}',cherry:'\u{1F352}',
-  apricot:'\u{1F351}',avocado:'\u{1F951}',banana_ripe:'\u{1F34C}',banana_unripe:'\u{1F34C}',
-  strawberry:'\u{1F353}',blueberry:'\u{1FAD0}',raspberry:'\u{1FAD0}',blackberry:'\u{1FAD0}',
-  orange:'\u{1F34A}',mandarin:'\u{1F34A}',grapefruit:'\u{1F34A}',lemon:'\u{1F34B}',
-  lime:'\u{1F34B}',grapes:'\u{1F347}',kiwi:'\u{1F95D}',pineapple:'\u{1F34D}',
-  cantaloupe:'\u{1F348}',honeydew:'\u{1F348}',pomegranate:'\u{1F34E}',papaya:'\u{1F348}',
-  passionfruit:'\u{1F348}',dried_mango:'\u{1F96D}',raisins:'\u{1F347}',
-  dried_apricots:'\u{1F351}',dates:'\u{1F334}',dried_figs:'\u{1F347}',
-  // Vegetables
-  garlic:'\u{1F9C4}',onion_brown:'\u{1F9C5}',onion_spring_green:'\u{1F9C5}',
-  leek:'\u{1F9C5}',shallot:'\u{1F9C5}',asparagus:'\u{1F33F}',
-  mushroom_button:'\u{1F344}',mushroom_oyster:'\u{1F344}',cauliflower:'\u{1F966}',
-  broccoli:'\u{1F966}',artichoke_globe:'\u{1F33F}',artichoke_jerusalem:'\u{1F33F}',
-  beetroot:'\u{1F33F}',butternut_squash:'\u{1F383}',sweet_potato:'\u{1F360}',
-  potato:'\u{1F954}',tomato:'\u{1F345}',cherry_tomato:'\u{1F345}',celery:'\u{1F33F}',
-  carrot:'\u{1F955}',zucchini:'\u{1F952}',cucumber:'\u{1F952}',bell_pepper:'\u{1FAD1}',
-  eggplant:'\u{1F346}',spinach:'\u{1F96C}',kale:'\u{1F96C}',bok_choy:'\u{1F96C}',
-  cabbage:'\u{1F96C}',fennel:'\u{1F33F}',green_beans:'\u{1FAD8}',snow_peas:'\u{1FAD9}',
-  sweetcorn:'\u{1F33D}',pumpkin_kent:'\u{1F383}',silverbeet:'\u{1F96C}',ginger:'\u{1FADA}',
-  // Grains
-  white_rice:'\u{1F35A}',brown_rice:'\u{1F35A}',white_bread:'\u{1F35E}',
-  wholemeal_bread:'\u{1F35E}',sourdough_spelt:'\u{1F35E}',sourdough_wheat:'\u{1F35E}',
-  gf_bread:'\u{1F35E}',wheat_pasta:'\u{1F35D}',gf_pasta:'\u{1F35D}',oats:'\u{1F963}',
-  quinoa:'\u{1F33E}',buckwheat:'\u{1F33E}',millet:'\u{1F33E}',cornflour:'\u{1F33D}',
-  rice_cakes:'\u{1F358}',rye_bread:'\u{1F35E}',corn_tortilla:'\u{1FAD3}',
-  // Dairy
-  cows_milk:'\u{1F95B}',skim_milk:'\u{1F95B}',lactose_free_milk:'\u{1F95B}',
-  greek_yogurt:'\u{1F95B}',regular_yogurt:'\u{1F95B}',hard_cheese:'\u{1F9C0}',
-  brie:'\u{1F9C0}',ricotta:'\u{1F9C0}',cream_cheese:'\u{1F9C0}',cottage_cheese:'\u{1F9C0}',
-  sour_cream:'\u{1F95B}',butter:'\u{1F9C8}',heavy_cream:'\u{1F95B}',ice_cream:'\u{1F366}',
-  almond_milk:'\u{1F95B}',soy_milk_whole:'\u{1F95B}',soy_milk_protein:'\u{1F95B}',
-  oat_milk:'\u{1F95B}',rice_milk:'\u{1F95B}',
-  // Proteins
-  chicken:'\u{1F357}',beef:'\u{1F969}',pork:'\u{1F969}',lamb:'\u{1F969}',
-  salmon:'\u{1F41F}',tuna_canned:'\u{1F41F}',shrimp:'\u{1F990}',eggs:'\u{1F95A}',
-  tofu_firm:'\u{1F9CB}',tempeh:'\u{1F9CB}',lentils_canned:'\u{1FAD8}',
-  chickpeas_canned:'\u{1FAD8}',black_beans:'\u{1FAD8}',kidney_beans:'\u{1FAD8}',
-  baked_beans:'\u{1FAD8}',edamame:'\u{1FAD9}',
-  // Nuts & Seeds
-  almonds:'\u{1F95C}',cashews:'\u{1F95C}',pistachios:'\u{1F95C}',macadamia:'\u{1F95C}',
-  walnuts:'\u{1F95C}',pecans:'\u{1F95C}',brazil_nuts:'\u{1F95C}',hazelnuts:'\u{1F95C}',
-  peanuts:'\u{1F95C}',pumpkin_seeds:'\u{1F330}',sunflower_seeds:'\u{1F33B}',
-  chia_seeds:'\u{1F330}',flax_seeds:'\u{1F330}',sesame_seeds:'\u{1F330}',
-  // Condiments
-  olive_oil:'\u{1FAD2}',coconut_oil:'\u{1F965}',garlic_infused_oil:'\u{1FAD2}',
-  soy_sauce:'\u{1F962}',ketchup:'\u{1F345}',tomato_paste:'\u{1F345}',
-  mayonnaise:'\u{1F962}',mustard:'\u{1F962}',balsamic_vinegar:'\u{1F962}',
-  apple_cider_vinegar:'\u{1F962}',pesto:'\u{1F33F}',miso_paste:'\u{1F963}',
-  fish_sauce:'\u{1F41F}',garlic_powder:'\u{1F9C4}',onion_powder:'\u{1F9C5}',
-  chili_flakes:'\u{1F336}\u{FE0F}',cumin:'\u{1F33F}',paprika:'\u{1F336}\u{FE0F}',
-  oregano:'\u{1F33F}',basil:'\u{1F33F}',thyme:'\u{1F33F}',turmeric:'\u{1F33F}',
-  peanut_butter:'\u{1F95C}',tahini:'\u{1F330}',
-  // Sweeteners
-  white_sugar:'\u{1F36C}',brown_sugar:'\u{1F36C}',maple_syrup:'\u{1F341}',
-  rice_malt_syrup:'\u{1F36F}',coconut_sugar:'\u{1F965}',stevia:'\u{1F33F}',
-  honey:'\u{1F36F}',agave:'\u{1F335}',xylitol:'\u{1F36C}',sorbitol:'\u{1F36C}',
-  // Beverages
-  water:'\u{1F4A7}',coffee_black:'\u{2615}',green_tea:'\u{1F375}',black_tea:'\u{1F375}',
-  peppermint_tea:'\u{1F375}',chamomile_tea:'\u{1F375}',apple_juice:'\u{1F9C3}',
-  orange_juice:'\u{1F34A}',beer:'\u{1F37A}',wine_dry:'\u{1F377}',spirits:'\u{1F943}',
+// ═══════════════════════════════════════════════
+// 1b. EMOJI ICONS
+// ═══════════════════════════════════════════════
+const EMOJI={
+apple:'\u{1F34E}',pear:'\u{1F350}',mango:'\u{1F96D}',watermelon:'\u{1F349}',
+peach:'\u{1F351}',nectarine:'\u{1F351}',plum:'\u{1F351}',cherry:'\u{1F352}',
+apricot:'\u{1F351}',avocado:'\u{1F951}',banana_ripe:'\u{1F34C}',banana_unripe:'\u{1F34C}',
+strawberry:'\u{1F353}',blueberry:'\u{1FAD0}',raspberry:'\u{1FAD0}',blackberry:'\u{1FAD0}',
+orange:'\u{1F34A}',mandarin:'\u{1F34A}',grapefruit:'\u{1F34A}',lemon:'\u{1F34B}',
+lime:'\u{1F34B}',grapes:'\u{1F347}',kiwi:'\u{1F95D}',pineapple:'\u{1F34D}',
+cantaloupe:'\u{1F348}',honeydew:'\u{1F348}',pomegranate:'\u{1F34E}',papaya:'\u{1F348}',
+passionfruit:'\u{1F348}',dragon_fruit:'\u{1F348}',rhubarb:'\u{1F33F}',star_fruit:'\u{1F31F}',
+tangelo:'\u{1F34A}',persimmon:'\u{1F34A}',nashi_pear:'\u{1F350}',lychee:'\u{1F352}',
+fig_fresh:'\u{1F347}',coconut:'\u{1F965}',cranberry:'\u{1FAD0}',
+prune:'\u{1F351}',dried_mango:'\u{1F96D}',raisins:'\u{1F347}',dried_apricots:'\u{1F351}',
+dates:'\u{1F334}',dried_figs:'\u{1F347}',dried_cranberries:'\u{1FAD0}',
+garlic:'\u{1F9C4}',onion:'\u{1F9C5}',onion_spring_green:'\u{1F9C5}',
+onion_spring_white:'\u{1F9C5}',leek:'\u{1F9C5}',shallot:'\u{1F9C5}',
+asparagus:'\u{1F33F}',mushroom_button:'\u{1F344}',mushroom_oyster:'\u{1F344}',
+cauliflower:'\u{1F966}',broccoli:'\u{1F966}',artichoke:'\u{1F33F}',
+jerusalem_artichoke:'\u{1F33F}',brussels_sprouts:'\u{1F966}',savoy_cabbage:'\u{1F96C}',
+peas_green:'\u{1FAD9}',celery:'\u{1F33F}',beetroot:'\u{1F33F}',
+sweet_potato:'\u{1F360}',butternut_squash:'\u{1F383}',potato:'\u{1F954}',
+tomato:'\u{1F345}',cherry_tomato:'\u{1F345}',carrot:'\u{1F955}',
+zucchini:'\u{1F952}',cucumber:'\u{1F952}',bell_pepper_green:'\u{1FAD1}',
+bell_pepper_red:'\u{1FAD1}',eggplant:'\u{1F346}',spinach:'\u{1F96C}',
+kale:'\u{1F96C}',bok_choy:'\u{1F96C}',cabbage:'\u{1F96C}',fennel:'\u{1F33F}',
+green_beans:'\u{1FAD8}',snow_peas:'\u{1FAD9}',sweetcorn:'\u{1F33D}',
+pumpkin:'\u{1F383}',silverbeet:'\u{1F96C}',ginger:'\u{1FADA}',
+lettuce:'\u{1F96C}',bean_sprouts:'\u{1F331}',chives:'\u{1F33F}',
+turnip:'\u{1F33F}',bamboo_shoots:'\u{1F38B}',radish:'\u{1F33F}',
+chicory:'\u{1F96C}',dandelion:'\u{1F33F}',
+white_rice:'\u{1F35A}',brown_rice:'\u{1F35A}',white_bread:'\u{1F35E}',
+wholemeal_bread:'\u{1F35E}',sourdough_spelt:'\u{1F35E}',sourdough_wheat:'\u{1F35E}',
+gf_bread:'\u{1F35E}',wheat_pasta:'\u{1F35D}',gf_pasta:'\u{1F35D}',oats:'\u{1F963}',
+quinoa:'\u{1F33E}',buckwheat:'\u{1F33E}',millet:'\u{1F33E}',cornflour:'\u{1F33D}',
+rice_cakes:'\u{1F358}',rye_bread:'\u{1F35E}',corn_tortilla:'\u{1FAD3}',
+barley:'\u{1F33E}',couscous:'\u{1F35D}',polenta:'\u{1F33D}',sorghum:'\u{1F33E}',
+tapioca:'\u{1F33E}',wheat_muesli:'\u{1F963}',rye_crispbread:'\u{1F35E}',
+cows_milk:'\u{1F95B}',skim_milk:'\u{1F95B}',lactose_free_milk:'\u{1F95B}',
+evaporated_milk:'\u{1F95B}',condensed_milk:'\u{1F95B}',
+greek_yogurt:'\u{1F95B}',regular_yogurt:'\u{1F95B}',lactose_free_yogurt:'\u{1F95B}',
+hard_cheese:'\u{1F9C0}',brie:'\u{1F9C0}',feta:'\u{1F9C0}',
+ricotta:'\u{1F9C0}',cream_cheese:'\u{1F9C0}',cottage_cheese:'\u{1F9C0}',
+custard:'\u{1F36E}',butter:'\u{1F9C8}',cream:'\u{1F95B}',
+ice_cream:'\u{1F366}',lactose_free_ice_cream:'\u{1F366}',
+almond_milk:'\u{1F95B}',soy_milk_whole:'\u{1F95B}',soy_milk_protein:'\u{1F95B}',
+oat_milk:'\u{1F95B}',rice_milk:'\u{1F95B}',coconut_milk:'\u{1F965}',
+chicken:'\u{1F357}',beef:'\u{1F969}',pork:'\u{1F969}',lamb:'\u{1F969}',
+salmon:'\u{1F41F}',tuna_canned:'\u{1F41F}',shrimp:'\u{1F990}',eggs:'\u{1F95A}',
+tofu_firm:'\u{1F9CB}',tempeh:'\u{1F9CB}',
+lentils_canned:'\u{1FAD8}',chickpeas_canned:'\u{1FAD8}',butter_beans_canned:'\u{1FAD8}',
+black_beans:'\u{1FAD8}',kidney_beans:'\u{1FAD8}',baked_beans:'\u{1FAD8}',
+split_peas:'\u{1FAD9}',falafel:'\u{1FAD8}',edamame:'\u{1FAD9}',
+almonds:'\u{1F95C}',cashews:'\u{1F95C}',pistachios:'\u{1F95C}',macadamia:'\u{1F95C}',
+walnuts:'\u{1F95C}',pecans:'\u{1F95C}',brazil_nuts:'\u{1F95C}',hazelnuts:'\u{1F95C}',
+peanuts:'\u{1F95C}',pine_nuts:'\u{1F95C}',
+pumpkin_seeds:'\u{1F330}',sunflower_seeds:'\u{1F33B}',chia_seeds:'\u{1F330}',
+flax_seeds:'\u{1F330}',sesame_seeds:'\u{1F330}',
+olive_oil:'\u{1FAD2}',coconut_oil:'\u{1F965}',garlic_infused_oil:'\u{1FAD2}',
+soy_sauce:'\u{1F962}',ketchup:'\u{1F345}',tomato_paste:'\u{1F345}',
+mayonnaise:'\u{1F962}',mustard:'\u{1F962}',bbq_sauce:'\u{1F962}',
+balsamic_vinegar:'\u{1F962}',chutney:'\u{1F962}',
+pesto:'\u{1F33F}',miso_paste:'\u{1F963}',fish_sauce:'\u{1F41F}',
+garlic_powder:'\u{1F9C4}',onion_powder:'\u{1F9C5}',
+chili_flakes:'\u{1F336}\u{FE0F}',cumin:'\u{1F33F}',paprika:'\u{1F336}\u{FE0F}',
+oregano:'\u{1F33F}',basil:'\u{1F33F}',thyme:'\u{1F33F}',turmeric:'\u{1F33F}',
+peanut_butter:'\u{1F95C}',tahini:'\u{1F330}',
+white_sugar:'\u{1F36C}',brown_sugar:'\u{1F36C}',maple_syrup:'\u{1F341}',
+rice_malt_syrup:'\u{1F36F}',coconut_sugar:'\u{1F965}',stevia:'\u{1F33F}',
+honey:'\u{1F36F}',agave:'\u{1F335}',hfcs:'\u{1F36C}',
+xylitol:'\u{1F36C}',erythritol:'\u{1F36C}',sorbitol_sw:'\u{1F36C}',
+molasses:'\u{1F36F}',dark_chocolate:'\u{1F36B}',
+water:'\u{1F4A7}',coffee_black:'\u{2615}',green_tea:'\u{1F375}',black_tea:'\u{1F375}',
+peppermint_tea:'\u{1F375}',chamomile_tea:'\u{1F375}',apple_juice:'\u{1F9C3}',
+orange_juice:'\u{1F34A}',cranberry_juice:'\u{1FAD0}',
+beer:'\u{1F37A}',wine_dry:'\u{1F377}',spirits:'\u{1F943}',
 };
-const CAT_EMOJI = {
+const CAT_EMOJI={
   fruits:'\u{1F34E}',vegetables:'\u{1F96C}',grains:'\u{1F33E}',dairy:'\u{1F95B}',
-  proteins:'\u{1F356}',nuts_seeds:'\u{1F95C}',condiments:'\u{1F9C2}',
+  proteins:'\u{1F356}',legumes:'\u{1FAD8}',nuts_seeds:'\u{1F95C}',condiments:'\u{1F9C2}',
   sweeteners:'\u{1F36C}',beverages:'\u{1F964}',
 };
-function getEmoji(food) { return EMOJI[food.id] || CAT_EMOJI[food.cat] || ''; }
+function getEmoji(f){return EMOJI[f.id]||CAT_EMOJI[f.cat]||'';}
 
-// ═══════════════════════════════════════════════════
-// 2. FOOD DATABASE (~175 foods)
-// per100g = grams of that FODMAP per 100g food
-//           null = published amount not available
-// level   = 'low' | 'moderate' | 'high'  (per Monash thresholds)
-// ═══════════════════════════════════════════════════
-const FOODS = [
-// ── FRUITS ──────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// 2. FOOD DATABASE
+// Sources: Monash University (monashfodmap.com) & FODMAP Friendly (fodmapfriendly.com)
+//
+// Schema per food:
+//   id, name, cat, serving,
+//   monash: { o:'high'|'moderate'|'low', sg:{subgroup:'level',...}, ls:'low serve'|null }
+//   ff: 'high'|'low'|null  (FODMAP Friendly assessment; null = not publicly listed)
+//   notes: string|null
+// ═══════════════════════════════════════════════
+const FOODS=[
+// ── FRUITS ──────────────────────────────────
 {id:'apple',name:'Apple',cat:'fruits',serving:'1 medium (130g)',
- fodmaps:{fructose:{l:'high',g:3.0},sorbitol:{l:'high',g:0.7}},
- notes:"One of the highest FODMAP fruits. Contains both excess fructose and sorbitol."},
+ monash:{o:'high',sg:{fructose:'high',sorbitol:'high'},ls:null},ff:'high',
+ notes:'Both sources agree. Substitute: banana, orange, strawberry.'},
 {id:'pear',name:'Pear',cat:'fruits',serving:'1 medium (150g)',
- fodmaps:{fructose:{l:'high',g:3.0},sorbitol:{l:'high',g:2.2}},
- notes:"Very high in sorbitol. A key food to avoid in elimination phase."},
+ monash:{o:'high',sg:{fructose:'high',sorbitol:'high'},ls:null},ff:'high',
+ notes:'Very high in both fructose and sorbitol.'},
+{id:'nashi_pear',name:'Nashi Pear',cat:'fruits',serving:'1 medium (140g)',
+ monash:{o:'high',sg:{sorbitol:'high',fructose:'high'},ls:null},ff:null},
 {id:'mango',name:'Mango',cat:'fruits',serving:'1/2 cup (82g)',
- fodmaps:{fructose:{l:'high',g:1.8}},
- notes:"High excess fructose. Tiny amounts (40g) may be tolerated."},
-{id:'watermelon',name:'Watermelon',cat:'fruits',serving:'1 cup diced (150g)',
- fodmaps:{fructose:{l:'high',g:2.0},mannitol:{l:'moderate',g:0.2}},
- notes:"High fructose and moderate mannitol. Even small serves cause symptoms for many."},
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high',
+ notes:'Small serves may be tolerated.'},
+{id:'watermelon',name:'Watermelon',cat:'fruits',serving:'1 cup (152g)',
+ monash:{o:'high',sg:{fructose:'high',fructans:'high',mannitol:'moderate'},ls:null},ff:'high',
+ notes:'Contains fructose, fructans, and mannitol.'},
 {id:'peach',name:'Peach',cat:'fruits',serving:'1 medium (98g)',
- fodmaps:{sorbitol:{l:'high',g:1.0},fructose:{l:'moderate',g:0.5}},
- notes:"High in sorbitol."},
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:'high'},
 {id:'nectarine',name:'Nectarine',cat:'fruits',serving:'1 medium (120g)',
- fodmaps:{sorbitol:{l:'high',g:0.9},fructose:{l:'moderate',g:0.5}}},
+ monash:{o:'high',sg:{sorbitol:'high',fructose:'moderate'},ls:null},ff:'high'},
 {id:'plum',name:'Plum',cat:'fruits',serving:'2 small (120g)',
- fodmaps:{sorbitol:{l:'high',g:1.2},fructose:{l:'moderate',g:0.4}}},
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:'high'},
 {id:'cherry',name:'Cherry',cat:'fruits',serving:'1 cup (130g)',
- fodmaps:{sorbitol:{l:'high',g:1.0},fructose:{l:'moderate',g:0.5}},
- notes:"High in sorbitol. Even a small handful can be problematic."},
+ monash:{o:'high',sg:{sorbitol:'high',fructose:'moderate'},ls:null},ff:'high'},
 {id:'apricot',name:'Apricot (fresh)',cat:'fruits',serving:'2 medium (70g)',
- fodmaps:{sorbitol:{l:'high',g:0.9}}},
-{id:'avocado',name:'Avocado',cat:'fruits',serving:'1/4 medium (40g)',
- fodmaps:{sorbitol:{l:'moderate',g:0.5}},
- notes:"Low FODMAP at 1/4 avocado (40g). Larger serves become high sorbitol."},
-{id:'banana_ripe',name:'Banana (ripe)',cat:'fruits',serving:'1 medium (100g)',
- fodmaps:{fructose:{l:'low',g:0.3}},
- notes:"Low FODMAP. One ripe banana is safe."},
-{id:'banana_unripe',name:'Banana (unripe/green)',cat:'fruits',serving:'1 medium (100g)',
- fodmaps:{},
- notes:"Resistant starch rather than FODMAPs. Very well tolerated."},
-{id:'strawberry',name:'Strawberry',cat:'fruits',serving:'10 medium (150g)',
- fodmaps:{fructose:{l:'low',g:0.1}},
- notes:"One of the safest fruits. Great low-FODMAP option."},
-{id:'blueberry',name:'Blueberry',cat:'fruits',serving:'1/4 cup (40g)',
- fodmaps:{fructose:{l:'moderate',g:0.5},sorbitol:{l:'moderate',g:0.2}},
- notes:"Safe in small serves (40g). Larger amounts become high FODMAP."},
-{id:'raspberry',name:'Raspberry',cat:'fruits',serving:'1/3 cup (60g)',
- fodmaps:{fructose:{l:'low',g:0.2}},
- notes:"Low FODMAP in standard serves."},
-{id:'blackberry',name:'Blackberry',cat:'fruits',serving:'10 berries (60g)',
- fodmaps:{sorbitol:{l:'moderate',g:0.4}}},
-{id:'orange',name:'Orange',cat:'fruits',serving:'1 medium (130g)',
- fodmaps:{fructose:{l:'low',g:0.1}},
- notes:"Low FODMAP. One of the safest fruits."},
-{id:'mandarin',name:'Mandarin / Clementine',cat:'fruits',serving:'2 small (120g)',
- fodmaps:{fructose:{l:'low',g:0.1}}},
-{id:'grapefruit',name:'Grapefruit',cat:'fruits',serving:'1/2 medium (100g)',
- fodmaps:{fructose:{l:'low',g:0.2}}},
-{id:'lemon',name:'Lemon (juice)',cat:'fruits',serving:'juice of 1 (60ml)',
- fodmaps:{},
- notes:"Low FODMAP. Use freely for flavoring."},
-{id:'lime',name:'Lime (juice)',cat:'fruits',serving:'juice of 1 (40ml)',
- fodmaps:{}},
-{id:'grapes',name:'Grapes',cat:'fruits',serving:'1 cup (150g)',
- fodmaps:{fructose:{l:'low',g:0.2}},
- notes:"Low FODMAP in standard serves."},
-{id:'kiwi',name:'Kiwi (green)',cat:'fruits',serving:'2 medium (150g)',
- fodmaps:{sorbitol:{l:'low',g:0.1}},
- notes:"Low FODMAP. Good vitamin C source."},
-{id:'pineapple',name:'Pineapple',cat:'fruits',serving:'1 cup diced (140g)',
- fodmaps:{},
- notes:"Low FODMAP. One of the safest tropical fruits."},
-{id:'cantaloupe',name:'Cantaloupe / Rockmelon',cat:'fruits',serving:'1 cup diced (160g)',
- fodmaps:{fructose:{l:'moderate',g:0.5},mannitol:{l:'low',g:0.1}}},
-{id:'honeydew',name:'Honeydew Melon',cat:'fruits',serving:'1 cup (170g)',
- fodmaps:{mannitol:{l:'moderate',g:0.4},fructose:{l:'low',g:0.2}}},
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:null},
+{id:'avocado',name:'Avocado',cat:'fruits',serving:'whole / 1/8 (20g)',
+ monash:{o:'moderate',sg:{sorbitol:'moderate'},ls:'1/8 avocado (20g)'},ff:null,
+ notes:'Low FODMAP at very small serve (20g). Larger portions are high.'},
 {id:'pomegranate',name:'Pomegranate',cat:'fruits',serving:'1/2 cup seeds (87g)',
- fodmaps:{fructose:{l:'high',g:2.8}},
- notes:"High in excess fructose."},
-{id:'papaya',name:'Papaya / Pawpaw',cat:'fruits',serving:'1 cup diced (140g)',
- fodmaps:{},
- notes:"Low FODMAP. Generally well tolerated."},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null},
+{id:'persimmon',name:'Persimmon',cat:'fruits',serving:'1 medium (100g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null},
+{id:'lychee',name:'Lychee',cat:'fruits',serving:'5 pieces (50g)',
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:null},
+{id:'fig_fresh',name:'Fig (fresh)',cat:'fruits',serving:'2 medium (80g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null},
+{id:'banana_unripe',name:'Banana (firm / unripe)',cat:'fruits',serving:'1 medium (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Low FODMAP. Overripe bananas may be higher in fructose.'},
+{id:'banana_ripe',name:'Banana (ripe)',cat:'fruits',serving:'1 medium (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Still considered low FODMAP at 1 medium.'},
+{id:'strawberry',name:'Strawberry',cat:'fruits',serving:'10 medium (150g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'One of the safest fruits.'},
+{id:'blueberry',name:'Blueberry',cat:'fruits',serving:'1/4 cup (40g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Low FODMAP at standard serve.'},
+{id:'raspberry',name:'Raspberry',cat:'fruits',serving:'30 berries (60g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Monash notes "limited" — large amounts may add up.'},
+{id:'blackberry',name:'Blackberry',cat:'fruits',serving:'6 berries (60g)',
+ monash:{o:'moderate',sg:{sorbitol:'moderate'},ls:'6 berries (60g)'},ff:null,
+ notes:'Moderate at larger serves.'},
+{id:'orange',name:'Orange',cat:'fruits',serving:'1 medium (130g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'mandarin',name:'Mandarin / Clementine',cat:'fruits',serving:'2 small (120g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'grapefruit',name:'Grapefruit',cat:'fruits',serving:'1/2 medium (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'lemon',name:'Lemon',cat:'fruits',serving:'juice of 1',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'lime',name:'Lime',cat:'fruits',serving:'juice of 1',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'grapes',name:'Grapes',cat:'fruits',serving:'1 cup (150g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'kiwi',name:'Kiwi (green)',cat:'fruits',serving:'2 medium (150g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'pineapple',name:'Pineapple',cat:'fruits',serving:'1 cup (140g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'cantaloupe',name:'Cantaloupe / Rockmelon',cat:'fruits',serving:'1 cup (160g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'honeydew',name:'Honeydew Melon',cat:'fruits',serving:'1 cup (170g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'papaya',name:'Papaya / Pawpaw',cat:'fruits',serving:'1 cup (140g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'passionfruit',name:'Passionfruit',cat:'fruits',serving:'4 whole (60g)',
- fodmaps:{}},
-{id:'dried_mango',name:'Dried Mango',cat:'fruits',serving:'1/4 cup (36g)',
- fodmaps:{fructose:{l:'high',g:8.0}},
- notes:"Drying concentrates all FODMAPs. Much higher than fresh mango."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'dragon_fruit',name:'Dragon Fruit',cat:'fruits',serving:'1 medium (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'rhubarb',name:'Rhubarb',cat:'fruits',serving:'1 cup (130g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'star_fruit',name:'Star Fruit',cat:'fruits',serving:'1 medium (90g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'tangelo',name:'Tangelo',cat:'fruits',serving:'1 medium (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'coconut',name:'Coconut (fresh)',cat:'fruits',serving:'small serve',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP at small serves. Coconut cream/milk in large amounts may be moderate.'},
+{id:'cranberry',name:'Cranberry (fresh)',cat:'fruits',serving:'1/2 cup (55g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+// Dried fruits
+{id:'dried_mango',name:'Dried Mango',cat:'fruits',serving:'small handful (36g)',
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high',
+ notes:'All dried fruit is concentrated. Much higher than fresh.'},
 {id:'raisins',name:'Raisins / Sultanas',cat:'fruits',serving:'1/4 cup (40g)',
- fodmaps:{fructose:{l:'high',g:7.5}},
- notes:"Very high fructose — concentrated from grapes. Avoid in elimination."},
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high'},
 {id:'dried_apricots',name:'Dried Apricots',cat:'fruits',serving:'5 pieces (40g)',
- fodmaps:{sorbitol:{l:'high',g:4.5}},
- notes:"Concentrated sorbitol. One of the highest polyol foods."},
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:'high'},
 {id:'dates',name:'Dates',cat:'fruits',serving:'1 date (25g)',
- fodmaps:{fructose:{l:'high',g:7.2}},
- notes:"Very high fructose content per piece."},
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high'},
 {id:'dried_figs',name:'Dried Figs',cat:'fruits',serving:'3 pieces (48g)',
- fodmaps:{fructans:{l:'high',g:2.0},fructose:{l:'moderate',g:0.8}}},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'prune',name:'Prune (dried plum)',cat:'fruits',serving:'3 pieces (30g)',
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:'high'},
+{id:'dried_cranberries',name:'Dried Cranberries',cat:'fruits',serving:'1/4 cup (35g)',
+ monash:{o:'moderate',sg:{fructose:'moderate'},ls:'1 tbsp (15g)'},ff:null,
+ notes:'Often sweetened. Check for added honey/HFCS.'},
 
-// ── VEGETABLES ──────────────────────────────────────
+// ── VEGETABLES ──────────────────────────────
 {id:'garlic',name:'Garlic',cat:'vegetables',serving:'1 clove (3g)',
- fodmaps:{fructans:{l:'high',g:9.2}},
- notes:"Highest fructan vegetable. Even a tiny amount is high FODMAP. Substitute: garlic-infused oil (fructans don't dissolve in oil)."},
-{id:'onion_brown',name:'Onion (brown / yellow)',cat:'vegetables',serving:'1/2 medium (50g)',
- fodmaps:{fructans:{l:'high',g:2.5}},
- notes:"Very high fructans. Substitute with green tops of spring onion, or garlic-infused oil."},
-{id:'onion_spring_green',name:'Spring Onion / Scallion (green tops only)',cat:'vegetables',serving:'2 stalks (30g)',
- fodmaps:{fructans:{l:'low',g:0.1}},
- notes:"Green tops only are low FODMAP. Discard the white bulb — that part is high in fructans."},
-{id:'leek',name:'Leek',cat:'vegetables',serving:'1/2 leek (54g)',
- fodmaps:{fructans:{l:'high',g:2.0}},
- notes:"High fructans in the white bulb. Dark green tips in small amounts may be tolerated."},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high',
+ notes:'Even small amounts are high. Use garlic-infused oil instead — fructans do NOT dissolve in oil.'},
+{id:'onion',name:'Onion (all types)',cat:'vegetables',serving:'1/2 medium (50g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high',
+ notes:'All varieties (brown, white, red, Spanish). Substitute: green tops of spring onion.'},
+{id:'onion_spring_green',name:'Spring Onion (green tops only)',cat:'vegetables',serving:'2 stalks green (30g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Green tops only. White bulb end is high in fructans — discard it.'},
+{id:'onion_spring_white',name:'Spring Onion (white bulb)',cat:'vegetables',serving:'1 bulb (5g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'leek',name:'Leek (bulb)',cat:'vegetables',serving:'1/2 leek (54g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high',
+ notes:'White/light green part is high. Dark green leaf tips may be tolerated.'},
 {id:'shallot',name:'Shallot',cat:'vegetables',serving:'1 small (20g)',
- fodmaps:{fructans:{l:'high',g:3.0}}},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
 {id:'asparagus',name:'Asparagus',cat:'vegetables',serving:'4 spears (60g)',
- fodmaps:{fructans:{l:'high',g:1.4},fructose:{l:'moderate',g:0.5}},
- notes:"Contains both fructans and excess fructose."},
-{id:'mushroom_button',name:'Mushroom (button / white)',cat:'vegetables',serving:'1 cup (84g)',
- fodmaps:{mannitol:{l:'high',g:2.5}},
- notes:"Very high mannitol. One of the main polyol-containing foods. Oyster mushrooms are a lower alternative."},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'mushroom_button',name:'Mushroom (button/white/cremini)',cat:'vegetables',serving:'1 cup (84g)',
+ monash:{o:'high',sg:{mannitol:'high'},ls:null},ff:'high',
+ notes:'High mannitol. Oyster mushrooms are lower.'},
 {id:'mushroom_oyster',name:'Mushroom (oyster)',cat:'vegetables',serving:'75g',
- fodmaps:{mannitol:{l:'moderate',g:0.5}},
- notes:"Lower mannitol than button mushrooms. Small serves may be tolerated."},
+ monash:{o:'moderate',sg:{mannitol:'moderate'},ls:'1 cup (75g)'},ff:null,
+ notes:'Lower mannitol than button mushrooms. May be tolerated in small amounts.'},
 {id:'cauliflower',name:'Cauliflower',cat:'vegetables',serving:'1/2 cup (60g)',
- fodmaps:{mannitol:{l:'high',g:0.5}},
- notes:"High mannitol per typical serve. Limit to very small amounts."},
+ monash:{o:'high',sg:{mannitol:'high'},ls:null},ff:'high'},
 {id:'broccoli',name:'Broccoli (heads)',cat:'vegetables',serving:'3/4 cup (75g)',
- fodmaps:{fructans:{l:'low',g:0.2},gos:{l:'low',g:0.1}},
- notes:"Low FODMAP in typical serve size. Avoid very large quantities."},
-{id:'artichoke_globe',name:'Artichoke (globe)',cat:'vegetables',serving:'1 whole (120g)',
- fodmaps:{fructans:{l:'high',g:3.0},gos:{l:'moderate',g:0.4}},
- notes:"Extremely high fructans. Avoid entirely during elimination phase."},
-{id:'artichoke_jerusalem',name:'Jerusalem Artichoke',cat:'vegetables',serving:'1 medium (60g)',
- fodmaps:{fructans:{l:'high',g:16.0}},
- notes:"The highest fructan food known. Even tiny amounts cause significant symptoms in most people."},
-{id:'beetroot',name:'Beetroot',cat:'vegetables',serving:'2 slices (60g)',
- fodmaps:{fructose:{l:'moderate',g:0.5},gos:{l:'moderate',g:0.3}},
- notes:"Small amounts (2 slices) are low FODMAP. Larger portions become moderate."},
-{id:'butternut_squash',name:'Butternut Squash / Pumpkin',cat:'vegetables',serving:'1/4 cup (45g)',
- fodmaps:{mannitol:{l:'moderate',g:0.5},fructose:{l:'low',g:0.2}},
- notes:"Low FODMAP in small serve (1/4 cup). Avoid large portions."},
-{id:'sweet_potato',name:'Sweet Potato',cat:'vegetables',serving:'1/2 medium (70g)',
- fodmaps:{mannitol:{l:'moderate',g:0.3}},
- notes:"Moderate mannitol. Low FODMAP at 70g serving."},
-{id:'potato',name:'Potato (white)',cat:'vegetables',serving:'1 medium (150g)',
- fodmaps:{},
- notes:"Low FODMAP. A reliable safe staple."},
-{id:'tomato',name:'Tomato',cat:'vegetables',serving:'1 medium (130g)',
- fodmaps:{fructose:{l:'low',g:0.2}},
- notes:"Low FODMAP in standard serves."},
-{id:'cherry_tomato',name:'Cherry Tomato',cat:'vegetables',serving:'5 tomatoes (75g)',
- fodmaps:{fructose:{l:'low',g:0.2}}},
-{id:'celery',name:'Celery',cat:'vegetables',serving:'1 stalk (40g)',
- fodmaps:{mannitol:{l:'moderate',g:0.3}},
- notes:"Moderate mannitol. One stalk is usually fine; avoid large amounts."},
-{id:'carrot',name:'Carrot',cat:'vegetables',serving:'1 medium (65g)',
- fodmaps:{},
- notes:"Low FODMAP. Great safe snack."},
-{id:'zucchini',name:'Zucchini / Courgette',cat:'vegetables',serving:'1/2 cup sliced (66g)',
- fodmaps:{mannitol:{l:'low',g:0.1}}},
-{id:'cucumber',name:'Cucumber',cat:'vegetables',serving:'1/2 cup sliced (52g)',
- fodmaps:{}},
-{id:'bell_pepper',name:'Bell Pepper / Capsicum',cat:'vegetables',serving:'1/2 medium (60g)',
- fodmaps:{},
- notes:"Low FODMAP in all colors."},
-{id:'eggplant',name:'Eggplant / Aubergine',cat:'vegetables',serving:'1 cup diced (82g)',
- fodmaps:{fructans:{l:'low',g:0.1}}},
-{id:'spinach',name:'Spinach (baby)',cat:'vegetables',serving:'1 cup (30g)',
- fodmaps:{},
- notes:"Low FODMAP raw. Cooked mature spinach may be slightly higher."},
-{id:'kale',name:'Kale',cat:'vegetables',serving:'1 cup (75g)',
- fodmaps:{fructans:{l:'low',g:0.1}}},
-{id:'bok_choy',name:'Bok Choy',cat:'vegetables',serving:'1 cup (70g)',
- fodmaps:{}},
-{id:'cabbage',name:'Cabbage',cat:'vegetables',serving:'1 cup shredded (89g)',
- fodmaps:{fructans:{l:'low',g:0.1}}},
-{id:'fennel',name:'Fennel (bulb)',cat:'vegetables',serving:'1/2 cup sliced (45g)',
- fodmaps:{},
- notes:"Low FODMAP. Can be used as an onion substitute in recipes."},
-{id:'green_beans',name:'Green Beans',cat:'vegetables',serving:'15 beans (75g)',
- fodmaps:{fructans:{l:'low',g:0.1},gos:{l:'low',g:0.1}}},
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Broccoli heads are low FODMAP at 3/4 cup. Stalks may be higher.'},
+{id:'artichoke',name:'Artichoke (globe)',cat:'vegetables',serving:'1 whole (120g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'jerusalem_artichoke',name:'Jerusalem Artichoke',cat:'vegetables',serving:'1 medium (60g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null,
+ notes:'Extremely high fructan content.'},
+{id:'brussels_sprouts',name:'Brussels Sprouts',cat:'vegetables',serving:'1/2 cup (44g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null,
+ notes:'Listed as high fructans by Monash.'},
+{id:'savoy_cabbage',name:'Savoy Cabbage',cat:'vegetables',serving:'1 cup (70g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null,
+ notes:'Higher fructans than common green cabbage.'},
+{id:'peas_green',name:'Green Peas',cat:'vegetables',serving:'1/2 cup (80g)',
+ monash:{o:'high',sg:{fructans:'high',gos:'high'},ls:null},ff:'high'},
+{id:'celery',name:'Celery',cat:'vegetables',serving:'1/4 stalk (20g)',
+ monash:{o:'high',sg:{mannitol:'high'},ls:'1/4 stalk (20g)'},ff:null,
+ notes:'Monash lists as high mannitol. Very small portions may be OK.'},
+{id:'beetroot',name:'Beetroot',cat:'vegetables',serving:'2 slices (30g)',
+ monash:{o:'moderate',sg:{fructans:'moderate',gos:'moderate'},ls:'2 slices (30g)'},ff:'low',
+ notes:'Monash: moderate in larger serves. FODMAP Friendly: lists as low. Small amounts safe.'},
+{id:'sweet_potato',name:'Sweet Potato',cat:'vegetables',serving:'1/2 cup (70g)',
+ monash:{o:'moderate',sg:{mannitol:'moderate'},ls:'1/2 cup (70g)'},ff:null,
+ notes:'Low at 1/2 cup. Larger serves become moderate/high mannitol.'},
+{id:'butternut_squash',name:'Butternut Squash',cat:'vegetables',serving:'1/4 cup (45g)',
+ monash:{o:'moderate',sg:{mannitol:'moderate'},ls:'1/4 cup (45g)'},ff:null},
 {id:'snow_peas',name:'Snow Peas / Mange Tout',cat:'vegetables',serving:'5 pods (40g)',
- fodmaps:{fructose:{l:'low',g:0.2},gos:{l:'moderate',g:0.4}},
- notes:"Moderate GOS at larger serves. Keep to 5 pods."},
+ monash:{o:'moderate',sg:{mannitol:'moderate',gos:'moderate'},ls:'5 pods'},ff:null},
+{id:'chicory',name:'Chicory',cat:'vegetables',serving:'1/2 cup (40g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null},
+{id:'dandelion',name:'Dandelion Leaves',cat:'vegetables',serving:'1 cup (55g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null},
+// LOW vegetables
+{id:'potato',name:'Potato (white)',cat:'vegetables',serving:'1 medium (150g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Reliable low FODMAP staple.'},
+{id:'tomato',name:'Tomato',cat:'vegetables',serving:'1 medium (130g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'cherry_tomato',name:'Cherry Tomato',cat:'vegetables',serving:'5 tomatoes (75g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'carrot',name:'Carrot',cat:'vegetables',serving:'1 medium (65g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'zucchini',name:'Zucchini / Courgette',cat:'vegetables',serving:'1/2 cup (66g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'cucumber',name:'Cucumber',cat:'vegetables',serving:'1/2 cup (52g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'bell_pepper_green',name:'Bell Pepper / Capsicum (green)',cat:'vegetables',serving:'1/2 medium (60g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Monash specifically lists green capsicum as low.'},
+{id:'bell_pepper_red',name:'Bell Pepper / Capsicum (red)',cat:'vegetables',serving:'1/2 medium (60g)',
+ monash:{o:'high',sg:{mannitol:'high'},ls:'1/4 pepper'},ff:null,
+ notes:'Monash lists red capsicum as high mannitol, unlike green capsicum which is low.'},
+{id:'eggplant',name:'Eggplant / Aubergine',cat:'vegetables',serving:'1 cup (82g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'spinach',name:'Spinach (baby)',cat:'vegetables',serving:'1 cup (30g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'kale',name:'Kale',cat:'vegetables',serving:'1 cup (75g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'bok_choy',name:'Bok Choy',cat:'vegetables',serving:'1 cup (70g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'cabbage',name:'Cabbage (common green)',cat:'vegetables',serving:'1 cup (89g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Common green cabbage is low. Savoy cabbage is high.'},
+{id:'fennel',name:'Fennel (bulb)',cat:'vegetables',serving:'1/2 cup (45g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP. Can be used as an onion substitute.'},
+{id:'green_beans',name:'Green Beans',cat:'vegetables',serving:'15 beans (75g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'sweetcorn',name:'Sweetcorn',cat:'vegetables',serving:'1/2 cob (65g)',
- fodmaps:{fructans:{l:'low',g:0.1}}},
-{id:'pumpkin_kent',name:'Pumpkin (Kent / Japanese)',cat:'vegetables',serving:'1/4 cup (45g)',
- fodmaps:{},
- notes:"Low FODMAP in small serves."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'pumpkin',name:'Pumpkin (kent/jap)',cat:'vegetables',serving:'1/4 cup (45g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'silverbeet',name:'Silverbeet / Swiss Chard',cat:'vegetables',serving:'1 cup (36g)',
- fodmaps:{}},
-{id:'ginger',name:'Ginger (fresh)',cat:'vegetables',serving:'1 tsp grated (3g)',
- fodmaps:{},
- notes:"Low FODMAP. Use freely as a flavoring."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'ginger',name:'Ginger (fresh)',cat:'vegetables',serving:'1 tsp (3g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP. Use freely as flavoring.'},
+{id:'lettuce',name:'Lettuce (all types)',cat:'vegetables',serving:'1 cup (36g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'bean_sprouts',name:'Bean Sprouts',cat:'vegetables',serving:'1 cup (70g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'chives',name:'Chives',cat:'vegetables',serving:'1 tbsp (3g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP. Good for adding mild onion flavor.'},
+{id:'turnip',name:'Turnip',cat:'vegetables',serving:'1/2 cup (65g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'bamboo_shoots',name:'Bamboo Shoots',cat:'vegetables',serving:'1/2 cup (60g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'radish',name:'Radish',cat:'vegetables',serving:'4 radishes (40g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'olives',name:'Olives',cat:'vegetables',serving:'10 olives (30g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 
-// ── GRAINS ──────────────────────────────────────────
-{id:'white_rice',name:'White Rice (cooked)',cat:'grains',serving:'1 cup cooked (180g)',
- fodmaps:{},
- notes:"Low FODMAP staple."},
-{id:'brown_rice',name:'Brown Rice (cooked)',cat:'grains',serving:'1 cup cooked (195g)',
- fodmaps:{}},
+// ── GRAINS ──────────────────────────────────
+{id:'white_rice',name:'White Rice (cooked)',cat:'grains',serving:'1 cup (180g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Low FODMAP staple.'},
+{id:'brown_rice',name:'Brown Rice (cooked)',cat:'grains',serving:'1 cup (195g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'white_bread',name:'Wheat Bread (white)',cat:'grains',serving:'2 slices (60g)',
- fodmaps:{fructans:{l:'high',g:1.2}},
- notes:"High fructans. Use gluten-free bread or sourdough spelt bread instead."},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
 {id:'wholemeal_bread',name:'Wheat Bread (wholemeal)',cat:'grains',serving:'2 slices (60g)',
- fodmaps:{fructans:{l:'high',g:1.4}},
- notes:"Higher fructans than white bread due to wheat bran content."},
-{id:'sourdough_spelt',name:'Sourdough Spelt Bread',cat:'grains',serving:'2 slices (65g)',
- fodmaps:{fructans:{l:'low',g:0.2}},
- notes:"Long fermentation reduces fructans significantly. One of the best bread choices on FODMAP."},
-{id:'sourdough_wheat',name:'Sourdough Wheat Bread',cat:'grains',serving:'2 slices (65g)',
- fodmaps:{fructans:{l:'moderate',g:0.5}},
- notes:"Better than regular wheat bread. Fermentation partially degrades fructans."},
-{id:'gf_bread',name:'Gluten-Free Bread',cat:'grains',serving:'2 slices (62g)',
- fodmaps:{},
- notes:"Generally low FODMAP. Check labels for honey, apple juice, or other high-FODMAP additives."},
-{id:'wheat_pasta',name:'Wheat Pasta (cooked)',cat:'grains',serving:'1 cup cooked (140g)',
- fodmaps:{fructans:{l:'high',g:1.1}},
- notes:"High fructans. Use rice, corn, or quinoa-based pasta instead."},
-{id:'gf_pasta',name:'Gluten-Free Pasta (rice/corn)',cat:'grains',serving:'1 cup cooked (140g)',
- fodmaps:{},
- notes:"Low FODMAP. Good substitute for wheat pasta."},
-{id:'oats',name:'Oats (rolled)',cat:'grains',serving:'1/2 cup dry (52g)',
- fodmaps:{fructans:{l:'moderate',g:0.8}},
- notes:"Moderate fructans. Small servings (1/2 cup dry) are usually tolerated."},
-{id:'quinoa',name:'Quinoa (cooked)',cat:'grains',serving:'1 cup cooked (185g)',
- fodmaps:{},
- notes:"Low FODMAP high-protein grain."},
-{id:'buckwheat',name:'Buckwheat',cat:'grains',serving:'3/4 cup cooked (100g)',
- fodmaps:{}},
-{id:'millet',name:'Millet (cooked)',cat:'grains',serving:'3/4 cup cooked (120g)',
- fodmaps:{}},
-{id:'cornflour',name:'Cornflour / Cornstarch',cat:'grains',serving:'2 tbsp (15g)',
- fodmaps:{}},
-{id:'rice_cakes',name:'Rice Cakes (plain)',cat:'grains',serving:'2 cakes (18g)',
- fodmaps:{},
- notes:"Low FODMAP. Check flavored varieties for high-FODMAP ingredients."},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
 {id:'rye_bread',name:'Rye Bread',cat:'grains',serving:'2 slices (60g)',
- fodmaps:{fructans:{l:'high',g:1.5}},
- notes:"Very high fructans. Even small amounts are high FODMAP."},
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'rye_crispbread',name:'Rye Crispbread',cat:'grains',serving:'3 crackers (30g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null},
+{id:'wheat_pasta',name:'Wheat Pasta (cooked)',cat:'grains',serving:'1 cup (140g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'couscous',name:'Couscous',cat:'grains',serving:'1 cup (160g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'barley',name:'Barley',cat:'grains',serving:'1/2 cup cooked (100g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:'high'},
+{id:'wheat_muesli',name:'Muesli (wheat-containing)',cat:'grains',serving:'1/2 cup (55g)',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null,
+ notes:'Due to wheat content. GF muesli without dried fruit is low FODMAP.'},
+{id:'sourdough_spelt',name:'Sourdough Spelt Bread',cat:'grains',serving:'2 slices (65g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Long fermentation reduces fructans. Monash lists as low.'},
+{id:'sourdough_wheat',name:'Sourdough Wheat Bread',cat:'grains',serving:'2 slices (65g)',
+ monash:{o:'moderate',sg:{fructans:'moderate'},ls:null},ff:'low',
+ notes:'Fermentation partially reduces fructans. Better than regular wheat.'},
+{id:'gf_bread',name:'Gluten-Free Bread',cat:'grains',serving:'2 slices (62g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Check labels for honey, apple juice, or other high-FODMAP additives.'},
+{id:'gf_pasta',name:'Gluten-Free Pasta (rice/corn)',cat:'grains',serving:'1 cup (140g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'oats',name:'Oats / Porridge',cat:'grains',serving:'1/2 cup dry (52g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Low FODMAP at 1/2 cup dry. Monash lists as low.'},
+{id:'quinoa',name:'Quinoa (cooked)',cat:'grains',serving:'1 cup (185g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'buckwheat',name:'Buckwheat',cat:'grains',serving:'3/4 cup cooked (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'millet',name:'Millet (cooked)',cat:'grains',serving:'3/4 cup (120g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'cornflour',name:'Cornflour / Cornstarch',cat:'grains',serving:'2 tbsp (15g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'polenta',name:'Polenta',cat:'grains',serving:'1 cup (180g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'rice_cakes',name:'Rice Cakes (plain)',cat:'grains',serving:'2 cakes (18g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'corn_tortilla',name:'Corn Tortilla',cat:'grains',serving:'2 tortillas (52g)',
- fodmaps:{},
- notes:"Low FODMAP. Great wheat-free wrap option."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'sorghum',name:'Sorghum',cat:'grains',serving:'1/2 cup (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'tapioca',name:'Tapioca',cat:'grains',serving:'1/2 cup (80g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 
-// ── DAIRY ────────────────────────────────────────────
-{id:'cows_milk',name:"Cow's Milk (full fat)",cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{lactose:{l:'high',g:4.8}},
- notes:"High lactose. Use lactose-free milk or plant-based alternatives."},
+// ── DAIRY ────────────────────────────────────
+{id:'cows_milk',name:"Cow's Milk",cat:'dairy',serving:'1 cup (250ml)',
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:'high',
+ notes:'Use lactose-free milk or plant-based alternatives.'},
 {id:'skim_milk',name:"Cow's Milk (skim)",cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{lactose:{l:'high',g:5.0}},
- notes:"Slightly higher lactose than full fat. Still high FODMAP."},
-{id:'lactose_free_milk',name:'Lactose-Free Milk',cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP. Lactase enzyme breaks down the lactose. Direct 1:1 substitute."},
-{id:'greek_yogurt',name:'Greek Yogurt (plain, strained)',cat:'dairy',serving:'3/4 cup (170g)',
- fodmaps:{lactose:{l:'low',g:0.5}},
- notes:"Straining removes most lactose-containing whey. Usually well tolerated. Choose plain."},
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:null},
+{id:'evaporated_milk',name:'Evaporated Milk',cat:'dairy',serving:'1/2 cup (125ml)',
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:null},
+{id:'condensed_milk',name:'Sweetened Condensed Milk',cat:'dairy',serving:'1/4 cup (80g)',
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:null},
 {id:'regular_yogurt',name:'Yogurt (regular, plain)',cat:'dairy',serving:'3/4 cup (170g)',
- fodmaps:{lactose:{l:'high',g:4.0}},
- notes:"High in lactose. Use Greek yogurt or lactose-free yogurt instead."},
-{id:'hard_cheese',name:'Hard Cheese (cheddar, parmesan, Swiss)',cat:'dairy',serving:'2 slices (40g)',
- fodmaps:{lactose:{l:'low',g:0.1}},
- notes:"Aged hard cheeses are very low in lactose. A safe dairy option."},
-{id:'brie',name:'Brie / Camembert',cat:'dairy',serving:'40g',
- fodmaps:{lactose:{l:'low',g:0.2}},
- notes:"Soft ripened cheeses are also low in lactose."},
-{id:'ricotta',name:'Ricotta Cheese',cat:'dairy',serving:'1/4 cup (60g)',
- fodmaps:{lactose:{l:'high',g:3.5}},
- notes:"Fresh cheeses retain more whey (and lactose) than aged cheeses."},
-{id:'cream_cheese',name:'Cream Cheese',cat:'dairy',serving:'2 tbsp (29g)',
- fodmaps:{lactose:{l:'moderate',g:2.5}}},
-{id:'cottage_cheese',name:'Cottage Cheese',cat:'dairy',serving:'1/4 cup (57g)',
- fodmaps:{lactose:{l:'high',g:3.0}}},
-{id:'sour_cream',name:'Sour Cream',cat:'dairy',serving:'2 tbsp (30g)',
- fodmaps:{lactose:{l:'low',g:1.5}},
- notes:"Low FODMAP in typical serving size."},
-{id:'butter',name:'Butter',cat:'dairy',serving:'1 tbsp (14g)',
- fodmaps:{lactose:{l:'low',g:0.1}},
- notes:"Very low lactose. Generally well tolerated even in lactose intolerance."},
-{id:'heavy_cream',name:'Heavy / Whipping Cream',cat:'dairy',serving:'2 tbsp (30g)',
- fodmaps:{lactose:{l:'low',g:0.8}},
- notes:"Low lactose in typical serving size."},
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:'high'},
+{id:'custard',name:'Custard',cat:'dairy',serving:'1/2 cup (130g)',
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:'high'},
 {id:'ice_cream',name:'Ice Cream (regular)',cat:'dairy',serving:'1/2 cup (100g)',
- fodmaps:{lactose:{l:'high',g:6.0}},
- notes:"High lactose. Use lactose-free ice cream or sorbet alternatives."},
-{id:'almond_milk',name:'Almond Milk (unsweetened)',cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP. Good cow's milk alternative."},
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:'high',
+ notes:'High lactose. Use lactose-free ice cream or sorbet.'},
+{id:'ricotta',name:'Ricotta Cheese',cat:'dairy',serving:'1/4 cup (60g)',
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:null,
+ notes:'Fresh cheeses retain more whey (and lactose) than aged.'},
+{id:'cottage_cheese',name:'Cottage Cheese',cat:'dairy',serving:'1/4 cup (57g)',
+ monash:{o:'high',sg:{lactose:'high'},ls:null},ff:null},
+{id:'cream_cheese',name:'Cream Cheese',cat:'dairy',serving:'2 tbsp (29g)',
+ monash:{o:'moderate',sg:{lactose:'moderate'},ls:'2 tbsp'},ff:null},
+{id:'cream',name:'Cream',cat:'dairy',serving:'2 tbsp (30g)',
+ monash:{o:'moderate',sg:{lactose:'moderate'},ls:'small serve'},ff:'high',
+ notes:'Monash: moderate in small amounts. FODMAP Friendly: lists as high.'},
+// LOW dairy
+{id:'lactose_free_milk',name:'Lactose-Free Milk',cat:'dairy',serving:'1 cup (250ml)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Direct 1:1 substitute for regular milk.'},
+{id:'lactose_free_yogurt',name:'Lactose-Free Yogurt',cat:'dairy',serving:'3/4 cup (170g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'lactose_free_ice_cream',name:'Lactose-Free Ice Cream',cat:'dairy',serving:'1/2 cup (100g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'greek_yogurt',name:'Greek Yogurt (plain, strained)',cat:'dairy',serving:'3/4 cup (170g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Straining removes most lactose-containing whey.'},
+{id:'hard_cheese',name:'Hard Cheese (cheddar, parmesan, Swiss)',cat:'dairy',serving:'2 slices (40g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Aged cheeses are very low in lactose.'},
+{id:'brie',name:'Brie / Camembert',cat:'dairy',serving:'40g',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Monash specifically lists brie and camembert as low FODMAP.'},
+{id:'feta',name:'Feta Cheese',cat:'dairy',serving:'40g',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Listed as low FODMAP by Monash.'},
+{id:'butter',name:'Butter',cat:'dairy',serving:'1 tbsp (14g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'almond_milk',name:'Almond Milk',cat:'dairy',serving:'1 cup (250ml)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'soy_milk_whole',name:'Soy Milk (whole bean)',cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{gos:{l:'high',g:0.8}},
- notes:"High GOS when made from whole soybeans. Choose soy protein isolate version instead."},
+ monash:{o:'high',sg:{gos:'high'},ls:null},ff:null,
+ notes:'High GOS from whole soybeans. Choose soy protein isolate version.'},
 {id:'soy_milk_protein',name:'Soy Milk (soy protein isolate)',cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP. GOS is removed during processing. Check label for 'soy protein isolate'."},
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Check label for "soy protein isolate" or "soy protein."'},
 {id:'oat_milk',name:'Oat Milk',cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{fructans:{l:'moderate',g:0.4}},
- notes:"Contains moderate fructans from oats."},
+ monash:{o:'moderate',sg:{fructans:'moderate'},ls:'small serve'},ff:null},
 {id:'rice_milk',name:'Rice Milk',cat:'dairy',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'coconut_milk',name:'Coconut Milk (canned)',cat:'dairy',serving:'1/2 cup (125ml)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 
-// ── PROTEINS & LEGUMES ───────────────────────────────
+// ── PROTEINS ─────────────────────────────────
 {id:'chicken',name:'Chicken (plain)',cat:'proteins',serving:'100g',
- fodmaps:{},
- notes:"Low FODMAP. All plain meats are FODMAP-free. Avoid marinades with garlic or onion."},
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'All plain, unprocessed meats are FODMAP-free. Avoid marinades with garlic/onion.'},
 {id:'beef',name:'Beef (plain)',cat:'proteins',serving:'100g',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'pork',name:'Pork (plain)',cat:'proteins',serving:'100g',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'lamb',name:'Lamb (plain)',cat:'proteins',serving:'100g',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'salmon',name:'Salmon',cat:'proteins',serving:'100g',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'tuna_canned',name:'Tuna (canned in water)',cat:'proteins',serving:'100g',
- fodmaps:{},
- notes:"Low FODMAP. Check for added sauces with high-FODMAP ingredients."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'shrimp',name:'Shrimp / Prawns',cat:'proteins',serving:'100g',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'eggs',name:'Eggs',cat:'proteins',serving:'2 large',
- fodmaps:{},
- notes:"Low FODMAP. One of the most reliable safe proteins."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'tofu_firm',name:'Tofu (firm, drained)',cat:'proteins',serving:'150g',
- fodmaps:{},
- notes:"Low FODMAP. Most GOS is removed during pressing and draining."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'tempeh',name:'Tempeh',cat:'proteins',serving:'100g',
- fodmaps:{gos:{l:'low',g:0.1}},
- notes:"Fermentation reduces GOS. Generally well tolerated."},
-{id:'lentils_canned',name:'Lentils (canned, drained & rinsed)',cat:'proteins',serving:'1/2 cup (100g)',
- fodmaps:{gos:{l:'moderate',g:0.5},fructans:{l:'low',g:0.1}},
- notes:"Canned and rinsed lentils have much lower GOS than home-cooked. A small serve is usually tolerated."},
-{id:'chickpeas_canned',name:'Chickpeas (canned, drained & rinsed)',cat:'proteins',serving:'1/4 cup (42g)',
- fodmaps:{gos:{l:'moderate',g:0.7},fructans:{l:'moderate',g:0.4}},
- notes:"Rinsing significantly reduces GOS. Low FODMAP at 1/4 cup (42g)."},
-{id:'black_beans',name:'Black Beans (canned)',cat:'proteins',serving:'1/4 cup (42g)',
- fodmaps:{gos:{l:'high',g:1.5}},
- notes:"High GOS even when canned and rinsed."},
-{id:'kidney_beans',name:'Kidney Beans (canned)',cat:'proteins',serving:'1/4 cup (42g)',
- fodmaps:{gos:{l:'high',g:1.2}}},
-{id:'baked_beans',name:'Baked Beans (canned)',cat:'proteins',serving:'1/4 cup (65g)',
- fodmaps:{gos:{l:'high',g:1.0},fructans:{l:'moderate',g:0.4}},
- notes:"High GOS and moderate fructans from sauce. Avoid in elimination."},
-{id:'edamame',name:'Edamame / Soybeans',cat:'proteins',serving:'1/2 cup (90g)',
- fodmaps:{gos:{l:'moderate',g:0.6}},
- notes:"Moderate GOS in standard serves."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 
-// ── NUTS & SEEDS ─────────────────────────────────────
-{id:'almonds',name:'Almonds',cat:'nuts_seeds',serving:'10 nuts (12g)',
- fodmaps:{fructans:{l:'low',g:0.2},gos:{l:'low',g:0.2}},
- notes:"Low FODMAP at 10 nuts. Exceeding 20 nuts becomes high FODMAP."},
+// ── LEGUMES ──────────────────────────────────
+{id:'lentils_canned',name:'Lentils (canned, drained & rinsed)',cat:'legumes',serving:'1/2 cup (100g)',
+ monash:{o:'moderate',sg:{gos:'moderate'},ls:'1/2 cup canned'},ff:'low',
+ notes:'Monash: moderate GOS. FODMAP Friendly: low (canned & rinsed). Canning + rinsing reduces GOS.'},
+{id:'chickpeas_canned',name:'Chickpeas (canned, drained & rinsed)',cat:'legumes',serving:'1/4 cup (42g)',
+ monash:{o:'moderate',sg:{gos:'moderate',fructans:'moderate'},ls:'1/4 cup canned'},ff:'low',
+ notes:'Both sources agree small canned-and-rinsed serves are manageable.'},
+{id:'butter_beans_canned',name:'Butter Beans (canned, drained)',cat:'legumes',serving:'1/4 cup (42g)',
+ monash:{o:'moderate',sg:{gos:'moderate'},ls:'1/4 cup canned'},ff:'low'},
+{id:'kidney_beans',name:'Red Kidney Beans',cat:'legumes',serving:'standard serve',
+ monash:{o:'high',sg:{gos:'high'},ls:null},ff:'high'},
+{id:'black_beans',name:'Black Beans',cat:'legumes',serving:'standard serve',
+ monash:{o:'high',sg:{gos:'high'},ls:null},ff:null},
+{id:'baked_beans',name:'Baked Beans (canned)',cat:'legumes',serving:'1/4 cup (65g)',
+ monash:{o:'high',sg:{gos:'high',fructans:'moderate'},ls:null},ff:'high'},
+{id:'split_peas',name:'Split Peas',cat:'legumes',serving:'1/2 cup (100g)',
+ monash:{o:'high',sg:{gos:'high'},ls:null},ff:null},
+{id:'falafel',name:'Falafel',cat:'legumes',serving:'4 balls (60g)',
+ monash:{o:'high',sg:{gos:'high',fructans:'high'},ls:null},ff:null,
+ notes:'Contains chickpeas + usually garlic and onion.'},
+{id:'edamame',name:'Edamame / Soybeans',cat:'legumes',serving:'1/2 cup (90g)',
+ monash:{o:'moderate',sg:{gos:'moderate'},ls:'small serve'},ff:null},
+
+// ── NUTS & SEEDS ─────────────────────────────
 {id:'cashews',name:'Cashews',cat:'nuts_seeds',serving:'10 nuts (15g)',
- fodmaps:{gos:{l:'high',g:3.5},fructans:{l:'moderate',g:0.8}},
- notes:"High GOS even in small amounts. One of the highest-FODMAP nuts."},
+ monash:{o:'high',sg:{gos:'high'},ls:null},ff:'high',
+ notes:'High GOS even in small amounts. Monash and FF both list as high.'},
 {id:'pistachios',name:'Pistachios',cat:'nuts_seeds',serving:'10 nuts (12g)',
- fodmaps:{fructans:{l:'high',g:2.0},gos:{l:'high',g:2.0}},
- notes:"Both fructans and GOS are high. Avoid entirely during elimination."},
+ monash:{o:'high',sg:{fructans:'high',gos:'high'},ls:null},ff:'high',
+ notes:'Both fructans and GOS.'},
+{id:'almonds',name:'Almonds',cat:'nuts_seeds',serving:'10 nuts (12g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP at ~10 nuts. Larger amounts (>20) may become high.'},
 {id:'macadamia',name:'Macadamia Nuts',cat:'nuts_seeds',serving:'20 nuts (30g)',
- fodmaps:{},
- notes:"Low FODMAP. One of the safest nuts."},
-{id:'walnuts',name:'Walnuts',cat:'nuts_seeds',serving:'10 halves (30g)',
- fodmaps:{}},
-{id:'pecans',name:'Pecans',cat:'nuts_seeds',serving:'10 halves (20g)',
- fodmaps:{}},
-{id:'brazil_nuts',name:'Brazil Nuts',cat:'nuts_seeds',serving:'10 nuts (40g)',
- fodmaps:{}},
-{id:'hazelnuts',name:'Hazelnuts',cat:'nuts_seeds',serving:'10 nuts (15g)',
- fodmaps:{gos:{l:'moderate',g:0.8}},
- notes:"Moderate GOS. Low FODMAP at 10 nuts."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'peanuts',name:'Peanuts',cat:'nuts_seeds',serving:'32 nuts (30g)',
- fodmaps:{},
- notes:"Technically a legume but low FODMAP in standard serves."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'walnuts',name:'Walnuts',cat:'nuts_seeds',serving:'10 halves (30g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'pecans',name:'Pecans',cat:'nuts_seeds',serving:'10 halves (20g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'brazil_nuts',name:'Brazil Nuts',cat:'nuts_seeds',serving:'10 nuts (40g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'hazelnuts',name:'Hazelnuts',cat:'nuts_seeds',serving:'10 nuts (15g)',
+ monash:{o:'moderate',sg:{gos:'moderate'},ls:'10 nuts'},ff:null},
+{id:'pine_nuts',name:'Pine Nuts',cat:'nuts_seeds',serving:'1 tbsp (14g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'pumpkin_seeds',name:'Pumpkin Seeds (pepitas)',cat:'nuts_seeds',serving:'2 tbsp (23g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'sunflower_seeds',name:'Sunflower Seeds',cat:'nuts_seeds',serving:'2 tbsp (16g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'chia_seeds',name:'Chia Seeds',cat:'nuts_seeds',serving:'2 tbsp (24g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'flax_seeds',name:'Flax Seeds / Linseed',cat:'nuts_seeds',serving:'1 tbsp (10g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'sesame_seeds',name:'Sesame Seeds',cat:'nuts_seeds',serving:'1 tbsp (9g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'peanut_butter',name:'Peanut Butter (natural)',cat:'nuts_seeds',serving:'2 tbsp (32g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 
-// ── CONDIMENTS & COOKING ─────────────────────────────
-{id:'olive_oil',name:'Olive Oil',cat:'condiments',serving:'1 tbsp (14g)',
- fodmaps:{},
- notes:"Low FODMAP. All pure oils are FODMAP-free."},
-{id:'coconut_oil',name:'Coconut Oil',cat:'condiments',serving:'1 tbsp (14g)',
- fodmaps:{}},
+// ── CONDIMENTS & COOKING ─────────────────────
 {id:'garlic_infused_oil',name:'Garlic-Infused Oil',cat:'condiments',serving:'1 tbsp (13g)',
- fodmaps:{},
- notes:"Safe! Fructans from garlic do NOT dissolve in oil. Always strain out garlic pieces. A key trick for getting garlic flavor without the FODMAP hit."},
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Safe! Fructans do NOT dissolve in oil. Essential FODMAP trick for garlic flavor.'},
+{id:'olive_oil',name:'Olive Oil',cat:'condiments',serving:'1 tbsp (14g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'coconut_oil',name:'Coconut Oil',cat:'condiments',serving:'1 tbsp (14g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'soy_sauce',name:'Soy Sauce',cat:'condiments',serving:'2 tbsp (36g)',
- fodmaps:{fructans:{l:'low',g:0.1}},
- notes:"Low FODMAP in typical amounts. Use tamari for gluten-free."},
-{id:'ketchup',name:'Tomato Ketchup',cat:'condiments',serving:'1 tbsp (17g)',
- fodmaps:{fructose:{l:'low',g:0.3}},
- notes:"Low FODMAP in small amounts."},
-{id:'tomato_paste',name:'Tomato Paste',cat:'condiments',serving:'2 tbsp (32g)',
- fodmaps:{fructose:{l:'moderate',g:1.5}},
- notes:"Concentrated fructose. Limit to 2 tbsp max."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'mayonnaise',name:'Mayonnaise',cat:'condiments',serving:'2 tbsp (28g)',
- fodmaps:{},
- notes:"Low FODMAP. Check labels for high-FODMAP additives."},
-{id:'mustard',name:'Mustard (Dijon / yellow)',cat:'condiments',serving:'1 tsp (5g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'mustard',name:'Mustard',cat:'condiments',serving:'1 tsp (5g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'bbq_sauce',name:'BBQ Sauce',cat:'condiments',serving:'1 tbsp (17g)',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Monash lists as low FODMAP. Check labels for garlic/onion.'},
+{id:'chutney',name:'Chutney',cat:'condiments',serving:'1 tbsp (20g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'ketchup',name:'Tomato Ketchup',cat:'condiments',serving:'1 tbsp (17g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'tomato_paste',name:'Tomato Paste',cat:'condiments',serving:'2 tbsp (32g)',
+ monash:{o:'moderate',sg:{fructose:'moderate'},ls:'2 tbsp'},ff:null},
 {id:'balsamic_vinegar',name:'Balsamic Vinegar',cat:'condiments',serving:'1 tbsp (16g)',
- fodmaps:{fructose:{l:'moderate',g:2.0}},
- notes:"Moderate fructose. Stick to 1 tbsp. Red or white wine vinegar is lower-FODMAP."},
-{id:'apple_cider_vinegar',name:'Apple Cider Vinegar',cat:'condiments',serving:'2 tbsp (30g)',
- fodmaps:{},
- notes:"Low FODMAP. The FODMAPs from apples don't carry into the vinegar."},
+ monash:{o:'moderate',sg:{fructose:'moderate'},ls:'1 tbsp'},ff:null},
 {id:'pesto',name:'Pesto (store-bought)',cat:'condiments',serving:'2 tbsp (30g)',
- fodmaps:{fructans:{l:'moderate',g:0.6}},
- notes:"Contains garlic. Homemade with garlic-infused oil would be low FODMAP."},
+ monash:{o:'moderate',sg:{fructans:'moderate'},ls:null},ff:null,
+ notes:'Usually contains garlic. Homemade with garlic-infused oil is low FODMAP.'},
 {id:'miso_paste',name:'Miso Paste',cat:'condiments',serving:'1 tbsp (17g)',
- fodmaps:{fructans:{l:'low',g:0.2}},
- notes:"Low FODMAP in typical amounts. Good safe umami flavoring."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'fish_sauce',name:'Fish Sauce',cat:'condiments',serving:'2 tbsp (36g)',
- fodmaps:{},
- notes:"Low FODMAP. Good for umami without garlic or onion."},
-{id:'garlic_powder',name:'Garlic Powder',cat:'condiments',serving:'pinch (1g)',
- fodmaps:{fructans:{l:'high',g:9.0}},
- notes:"Concentrated fructans. Even a pinch is high FODMAP. Avoid entirely. Often hidden in spice blends — read labels."},
-{id:'onion_powder',name:'Onion Powder',cat:'condiments',serving:'pinch (1g)',
- fodmaps:{fructans:{l:'high',g:7.0}},
- notes:"Very high fructans. Frequently hidden in spice mixes, sauces, and seasoning packets — check all labels."},
-{id:'chili_flakes',name:'Chili Flakes / Dried Chili',cat:'condiments',serving:'1 tsp (3g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'tahini',name:'Tahini',cat:'condiments',serving:'2 tbsp (30g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'garlic_powder',name:'Garlic Powder',cat:'condiments',serving:'any amount',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null,
+ notes:'Concentrated fructans. Even a pinch is high. Often hidden in spice blends — read all labels.'},
+{id:'onion_powder',name:'Onion Powder',cat:'condiments',serving:'any amount',
+ monash:{o:'high',sg:{fructans:'high'},ls:null},ff:null,
+ notes:'Very high fructans. Hidden in many sauces and seasonings.'},
+{id:'chili_flakes',name:'Chili Flakes',cat:'condiments',serving:'1 tsp (3g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'cumin',name:'Cumin',cat:'condiments',serving:'1 tsp (2g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'paprika',name:'Paprika',cat:'condiments',serving:'1 tsp (2g)',
- fodmaps:{}},
-{id:'oregano',name:'Oregano (dried)',cat:'condiments',serving:'1 tsp (1g)',
- fodmaps:{}},
-{id:'basil',name:'Basil (fresh or dried)',cat:'condiments',serving:'1 tbsp (2g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'oregano',name:'Oregano',cat:'condiments',serving:'1 tsp (1g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'basil',name:'Basil',cat:'condiments',serving:'1 tbsp (2g)',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'thyme',name:'Thyme',cat:'condiments',serving:'1 tsp (1g)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'turmeric',name:'Turmeric',cat:'condiments',serving:'1 tsp (3g)',
- fodmaps:{}},
-{id:'peanut_butter',name:'Peanut Butter (natural)',cat:'condiments',serving:'2 tbsp (32g)',
- fodmaps:{},
- notes:"Low FODMAP in typical serves."},
-{id:'tahini',name:'Tahini (sesame paste)',cat:'condiments',serving:'2 tbsp (30g)',
- fodmaps:{fructans:{l:'low',g:0.1}}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 
-// ── SWEETENERS ───────────────────────────────────────
-{id:'white_sugar',name:'White Sugar',cat:'sweeteners',serving:'1 tsp (4g)',
- fodmaps:{},
- notes:"Low FODMAP. Sucrose is 50/50 glucose and fructose — balanced, not a FODMAP concern."},
+// ── SWEETENERS ───────────────────────────────
+{id:'white_sugar',name:'White Sugar (sucrose)',cat:'sweeteners',serving:'1 tsp (4g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Sucrose is 50/50 glucose + fructose — balanced, not a FODMAP concern.'},
 {id:'brown_sugar',name:'Brown Sugar',cat:'sweeteners',serving:'1 tsp (4g)',
- fodmaps:{}},
-{id:'maple_syrup',name:'Maple Syrup (pure)',cat:'sweeteners',serving:'2 tbsp (40g)',
- fodmaps:{},
- notes:"Low FODMAP. One of the safest sweeteners."},
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'maple_syrup',name:'Maple Syrup',cat:'sweeteners',serving:'2 tbsp (40g)',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
 {id:'rice_malt_syrup',name:'Rice Malt Syrup',cat:'sweeteners',serving:'1 tbsp (21g)',
- fodmaps:{},
- notes:"Low FODMAP. Contains mainly glucose. Good honey substitute."},
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Good honey substitute. Mainly glucose.'},
+{id:'stevia',name:'Stevia',cat:'sweeteners',serving:'1 packet',
+ monash:{o:'low',sg:{},ls:null},ff:'low'},
+{id:'dark_chocolate',name:'Dark Chocolate',cat:'sweeteners',serving:'30g',
+ monash:{o:'low',sg:{},ls:null},ff:'low',
+ notes:'Low FODMAP at ~30g. Avoid milk chocolate (lactose).'},
 {id:'coconut_sugar',name:'Coconut Sugar',cat:'sweeteners',serving:'1 tsp (4g)',
- fodmaps:{},
- notes:"Low FODMAP in typical amounts."},
-{id:'stevia',name:'Stevia',cat:'sweeteners',serving:'1 packet (1g)',
- fodmaps:{},
- notes:"Low FODMAP. Safe non-caloric sweetener option."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'honey',name:'Honey',cat:'sweeteners',serving:'1 tbsp (21g)',
- fodmaps:{fructose:{l:'high',g:7.5}},
- notes:"Very high excess fructose. Even 1 teaspoon can cause symptoms. Use rice malt syrup or maple syrup instead."},
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high',
+ notes:'Very high excess fructose. Use maple syrup or rice malt syrup instead.'},
 {id:'agave',name:'Agave Syrup',cat:'sweeteners',serving:'1 tbsp (21g)',
- fodmaps:{fructose:{l:'high',g:14.0}},
- notes:"Extremely high fructose. Avoid entirely. Often marketed as 'healthy' but one of the worst sweeteners for FODMAP."},
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high',
+ notes:'Extremely high fructose.'},
+{id:'hfcs',name:'High Fructose Corn Syrup',cat:'sweeteners',serving:'1 tbsp (21g)',
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high',
+ notes:'Very high excess fructose. Hidden in many processed foods.'},
+{id:'molasses',name:'Molasses',cat:'sweeteners',serving:'1 tbsp (20g)',
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:'high'},
 {id:'xylitol',name:'Xylitol',cat:'sweeteners',serving:'1 tsp (4g)',
- fodmaps:{sorbitol:{l:'high',g:100.0}},
- notes:"Xylitol IS a polyol (sugar alcohol). Very high FODMAP. Common in sugar-free gum and mints — check ingredient lists."},
-{id:'sorbitol',name:'Sorbitol (E420)',cat:'sweeteners',serving:'1 tsp (4g)',
- fodmaps:{sorbitol:{l:'high',g:100.0}},
- notes:"Sorbitol itself is a FODMAP polyol. Very high. Found in many 'diet' and 'sugar-free' products."},
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:'high',
+ notes:'A polyol (sugar alcohol). In sugar-free gum, mints, and candy.'},
+{id:'erythritol',name:'Erythritol',cat:'sweeteners',serving:'1 tsp (4g)',
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:null,
+ notes:'A polyol. Monash lists sugar-free confectionery containing polyols as high.'},
+{id:'sorbitol_sw',name:'Sorbitol (E420)',cat:'sweeteners',serving:'1 tsp (4g)',
+ monash:{o:'high',sg:{sorbitol:'high'},ls:null},ff:'high',
+ notes:'Sorbitol IS a FODMAP polyol. Found in "diet" and "sugar-free" products.'},
 
-// ── BEVERAGES ────────────────────────────────────────
-{id:'water',name:'Water',cat:'beverages',serving:'any amount',
- fodmaps:{}},
+// ── BEVERAGES ────────────────────────────────
+{id:'water',name:'Water',cat:'beverages',serving:'any',
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'coffee_black',name:'Coffee (black)',cat:'beverages',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP when black. Note: coffee stimulates gut motility and can worsen IBS symptoms independently of FODMAPs."},
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP when black. Coffee can stimulate gut motility independently of FODMAPs.'},
 {id:'green_tea',name:'Green Tea',cat:'beverages',serving:'1 cup (250ml)',
- fodmaps:{}},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'black_tea',name:'Black Tea',cat:'beverages',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP when brewed weak to moderate. Limit to 1-2 cups."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
 {id:'peppermint_tea',name:'Peppermint Tea',cat:'beverages',serving:'1 cup (250ml)',
- fodmaps:{},
- notes:"Low FODMAP and may help IBS symptoms — peppermint oil relaxes intestinal smooth muscle."},
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'May help IBS symptoms — peppermint oil relaxes intestinal smooth muscle.'},
 {id:'chamomile_tea',name:'Chamomile Tea',cat:'beverages',serving:'1 cup (250ml)',
- fodmaps:{fructans:{l:'moderate',g:null}},
- notes:"Contains fructans. Limit to 1 cup with a short steep time."},
+ monash:{o:'moderate',sg:{fructans:'moderate'},ls:'weak brew'},ff:null},
 {id:'apple_juice',name:'Apple Juice',cat:'beverages',serving:'125ml',
- fodmaps:{fructose:{l:'high',g:2.5}},
- notes:"High in excess fructose. Avoid during elimination phase."},
+ monash:{o:'high',sg:{fructose:'high'},ls:null},ff:null},
 {id:'orange_juice',name:'Orange Juice',cat:'beverages',serving:'125ml',
- fodmaps:{fructose:{l:'low',g:0.3}},
- notes:"Low FODMAP in small amounts (125ml / 1/2 cup)."},
+ monash:{o:'low',sg:{},ls:null},ff:null},
+{id:'cranberry_juice',name:'Cranberry Juice',cat:'beverages',serving:'200ml',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Monash lists cranberry juice as low FODMAP.'},
 {id:'beer',name:'Beer',cat:'beverages',serving:'375ml',
- fodmaps:{fructans:{l:'moderate',g:0.1}},
- notes:"Contains fructans from barley. 1 standard drink is often tolerated. Gluten-free beer is not necessarily lower FODMAP."},
+ monash:{o:'moderate',sg:{fructans:'moderate'},ls:'1 standard drink'},ff:null},
 {id:'wine_dry',name:'Wine (dry, red or white)',cat:'beverages',serving:'150ml glass',
- fodmaps:{},
- notes:"Low FODMAP at 1 glass. Avoid sweet/dessert wines which may be high in fructose."},
-{id:'spirits',name:'Spirits (vodka, gin, rum)',cat:'beverages',serving:'30ml shot',
- fodmaps:{},
- notes:"Low FODMAP neat. Watch mixers — fruit juices and sodas can add significant FODMAPs."},
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Avoid sweet/dessert wines.'},
+{id:'spirits',name:'Spirits (vodka, gin, rum)',cat:'beverages',serving:'30ml',
+ monash:{o:'low',sg:{},ls:null},ff:null,
+ notes:'Low FODMAP neat. Watch mixers.'},
 ];
 
-// Normalize: add overallRating derived from fodmaps
-FOODS.forEach(f => {
-  const levels = Object.values(f.fodmaps).map(v => v.l);
-  if (levels.includes('high')) f.overall = 'high';
-  else if (levels.includes('moderate')) f.overall = 'moderate';
-  else f.overall = 'low';
+// Compute overall from monash data
+// Known LOW subgroup entries — foods that contain a FODMAP at safe levels.
+// These are well-established from general FODMAP science and allow the
+// "Browse by Group" view to show low-level foods alongside high/moderate.
+const LOW_SG={
+  // Lactose (all dairy contains some; aged/strained = very low)
+  hard_cheese:{lactose:'low'},brie:{lactose:'low'},feta:{lactose:'low'},
+  butter:{lactose:'low'},greek_yogurt:{lactose:'low'},
+  cream_cheese:{lactose:'low'},coconut_milk:{lactose:'low'},
+  lactose_free_milk:{lactose:'low'},lactose_free_yogurt:{lactose:'low'},
+  lactose_free_ice_cream:{lactose:'low'},almond_milk:{lactose:'low'},
+  soy_milk_protein:{lactose:'low'},rice_milk:{lactose:'low'},
+  // Fructans (trace amounts in many vegetables and grains)
+  broccoli:{fructans:'low',gos:'low'},cabbage:{fructans:'low'},
+  kale:{fructans:'low'},eggplant:{fructans:'low'},sweetcorn:{fructans:'low'},
+  sourdough_spelt:{fructans:'low'},gf_bread:{fructans:'low'},
+  green_beans:{fructans:'low',gos:'low'},fennel:{fructans:'low'},
+  lettuce:{fructans:'low'},bean_sprouts:{fructans:'low'},
+  silverbeet:{fructans:'low'},bok_choy:{fructans:'low'},
+  soy_sauce:{fructans:'low'},miso_paste:{fructans:'low'},
+  // Fructose (small amounts in many fruits/veg)
+  banana_ripe:{fructose:'low'},banana_unripe:{fructose:'low'},
+  strawberry:{fructose:'low'},blueberry:{fructose:'low'},
+  raspberry:{fructose:'low'},orange:{fructose:'low'},
+  mandarin:{fructose:'low'},grapefruit:{fructose:'low'},
+  grapes:{fructose:'low'},kiwi:{fructose:'low'},
+  cantaloupe:{fructose:'low'},pineapple:{fructose:'low'},
+  tomato:{fructose:'low'},cherry_tomato:{fructose:'low'},
+  ketchup:{fructose:'low'},orange_juice:{fructose:'low'},
+  // GOS (trace in some nuts/legumes/veg)
+  almonds:{fructans:'low',gos:'low'},tempeh:{gos:'low'},
+  tofu_firm:{gos:'low'},
+  // Sorbitol (small amounts in some fruits)
+  kiwi:{sorbitol:'low'},coconut:{sorbitol:'low'},
+  // Mannitol (trace in some veg)
+  zucchini:{mannitol:'low'},pumpkin:{mannitol:'low'},
+  potato:{mannitol:'low'},carrot:{mannitol:'low'},
+};
+FOODS.forEach(f=>{
+  if(LOW_SG[f.id]){
+    for(const[k,v]of Object.entries(LOW_SG[f.id])){
+      if(!f.monash.sg[k]) f.monash.sg[k]=v; // don't overwrite moderate/high
+    }
+  }
 });
 
-// ═══════════════════════════════════════════════════
+FOODS.forEach(f=>{f.overall=f.monash.o;});
+
+// ═══════════════════════════════════════════════
 // 3. STATE
-// ═══════════════════════════════════════════════════
-const CYCLE = ['unknown','problematic','safe'];
-const STATE_LABELS = { unknown:'? Unknown', problematic:'✗ Problematic', safe:'✓ Safe' };
-
-const state = {
-  query: '',
-  expanded: null,       // food id or null
-  browseExpanded: null, // food id or null (browse view uses separate ids)
-  browseGroup: 'fructans',
-  triggers: loadTriggers(),
+// ═══════════════════════════════════════════════
+const CYCLE=['unknown','problematic','safe'];
+const STATE_LBL={unknown:'? Unknown',problematic:'✗ Problematic',safe:'✓ Safe'};
+const state={
+  query:'',expanded:null,browseExpanded:null,browseGroup:'fructans',
+  triggers:loadTriggers(),
 };
+function loadTriggers(){try{const s=localStorage.getItem('fodmap_triggers_v3');if(s)return JSON.parse(s);}catch(e){}return Object.fromEntries(SG_KEYS.map(k=>[k,'unknown']));}
+function saveTriggers(){localStorage.setItem('fodmap_triggers_v3',JSON.stringify(state.triggers));}
 
-function loadTriggers() {
-  try {
-    const s = localStorage.getItem('fodmap_triggers_v2');
-    if (s) return JSON.parse(s);
-  } catch(e){}
-  return Object.fromEntries(SG_KEYS.map(k => [k, 'unknown']));
-}
-function saveTriggers() {
-  localStorage.setItem('fodmap_triggers_v2', JSON.stringify(state.triggers));
-}
-
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 4. HELPERS
-// ═══════════════════════════════════════════════════
-const LEVEL_RANK = { low:0, moderate:1, high:2 };
+// ═══════════════════════════════════════════════
+const LVL_RANK={low:0,moderate:1,high:2};
+const CAT_LBL={fruits:'Fruits',vegetables:'Vegetables',grains:'Grains & Bread',dairy:'Dairy & Alternatives',proteins:'Proteins',legumes:'Legumes',nuts_seeds:'Nuts & Seeds',condiments:'Condiments & Cooking',sweeteners:'Sweeteners',beverages:'Beverages'};
+function lvlLabel(l){return{low:'Low',moderate:'Moderate',high:'High'}[l]||l;}
+function catLabel(c){return CAT_LBL[c]||c;}
+function sgKeysOf(f){return Object.keys(f.monash.sg);}
+function searchFoods(q){
+  if(!q)return[...FOODS].sort((a,b)=>a.name.localeCompare(b.name));
+  const lq=q.toLowerCase().trim();
+  const sgHit=SG_KEYS.find(k=>SG[k].name.toLowerCase().includes(lq)||SG[k].cat.toLowerCase().includes(lq)||k.includes(lq));
+  return FOODS.filter(f=>f.name.toLowerCase().includes(lq)||catLabel(f.cat).toLowerCase().includes(lq)||(sgHit&&f.monash.sg[sgHit]))
+    .sort((a,b)=>{const al=a.name.toLowerCase(),bl=b.name.toLowerCase();if(al.startsWith(lq)&&!bl.startsWith(lq))return-1;if(!al.startsWith(lq)&&bl.startsWith(lq))return 1;return al.localeCompare(bl);});
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-const CAT_LABELS = {
-  fruits:'Fruits', vegetables:'Vegetables', grains:'Grains & Bread',
-  dairy:'Dairy & Alternatives', proteins:'Proteins & Legumes',
-  nuts_seeds:'Nuts & Seeds', condiments:'Condiments & Cooking',
-  sweeteners:'Sweeteners', beverages:'Beverages'
-};
-
-function levelLabel(l) { return {low:'Low',moderate:'Moderate',high:'High'}[l] || l; }
-function catLabel(c)   { return CAT_LABELS[c] || c; }
-
-function sgKeysOfFood(food) { return Object.keys(food.fodmaps); }
-
-function searchFoods(q) {
-  if (!q) return [...FOODS].sort((a,b) => a.name.localeCompare(b.name));
-  const lq = q.toLowerCase().trim();
-  // Check if user is searching for a subgroup keyword
-  const sgHit = SG_KEYS.find(k =>
-    SG[k].name.toLowerCase().includes(lq) ||
-    SG[k].cat.toLowerCase().includes(lq) ||
-    k.includes(lq)
-  );
-  const matches = FOODS.filter(f =>
-    f.name.toLowerCase().includes(lq) ||
-    catLabel(f.cat).toLowerCase().includes(lq) ||
-    (sgHit && f.fodmaps[sgHit])
-  );
-  return matches.sort((a,b) => {
-    const al = a.name.toLowerCase(), bl = b.name.toLowerCase();
-    if (al.startsWith(lq) && !bl.startsWith(lq)) return -1;
-    if (!al.startsWith(lq) && bl.startsWith(lq)) return 1;
-    return al.localeCompare(bl);
-  });
+// ═══════════════════════════════════════════════
+// 5. RENDER
+// ═══════════════════════════════════════════════
+function sgChips(f){
+  const keys=sgKeysOf(f);
+  if(!keys.length)return'';
+  return'<div class="sg-chips">'+keys.map(k=>`<span class="sg-chip badge-${f.monash.sg[k]}">${SG[k].name}</span>`).join('')+'</div>';
 }
 
-// ═══════════════════════════════════════════════════
-// 5. RENDER HELPERS
-// ═══════════════════════════════════════════════════
-
-function sgChips(food) {
-  const keys = sgKeysOfFood(food);
-  if (!keys.length) return '';
-  return '<div class="sg-chips">' +
-    keys.map(k => `<span class="sg-chip badge-${food.fodmaps[k].l}">${SG[k].name}</span>`).join('') +
-    '</div>';
-}
-
-function fodmapTable(food) {
-  const keys = sgKeysOfFood(food);
-  if (!keys.length) {
-    return '<p style="font-size:.78rem;color:var(--text-muted);font-style:italic;padding:4px 0">No significant FODMAPs detected.</p>';
+function sourceDetail(f){
+  const sg=f.monash.sg;const keys=Object.keys(sg);
+  // Monash block
+  let mRows='';
+  if(keys.length){
+    mRows=keys.map(k=>`<div class="sg-row"><span><span class="sg-name">${SG[k].name}</span> <span class="sg-cat">${SG[k].cat}</span></span><span class="badge badge-${sg[k]}">${lvlLabel(sg[k])}</span></div>`).join('');
+  } else {
+    mRows='<div style="color:var(--text-muted);font-style:italic;padding:4px 0">All subgroups low at standard serve</div>';
   }
-  const rows = keys.map(k => {
-    const d = food.fodmaps[k];
-    const amt = d.g != null ? `${d.g}g/100g` : '<em>No data</em>';
-    return `<tr>
-      <td>${SG[k].name}<br><span class="sg-cat">${SG[k].cat}</span></td>
-      <td><span class="badge badge-${d.l}">${levelLabel(d.l)}</span></td>
-      <td class="amt">${amt}</td>
-    </tr>`;
-  }).join('');
-  return `<table class="fodmap-tbl">
-    <thead><tr><th>FODMAP Subgroup</th><th>Level</th><th>Per 100g</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+  let mExtra='';
+  if(f.monash.ls) mExtra+=`<div class="low-serve">Low-FODMAP serve: ${f.monash.ls}</div>`;
+
+  // FODMAP Friendly block
+  let ffBody='';
+  if(f.ff!=null){
+    ffBody=`<span class="badge badge-${f.ff}">${f.ff==='low'?'Low FODMAP':'High FODMAP'}</span>`;
+  } else {
+    ffBody='<span style="color:var(--text-muted);font-style:italic">Not specifically listed in public data</span>';
+  }
+
+  // Agreement indicator
+  let agr='';
+  if(f.ff!=null){
+    if(f.ff===f.overall||(f.ff==='low'&&f.overall==='low')||(f.ff==='high'&&(f.overall==='high'||f.overall==='moderate'))){
+      agr='<div class="agreement agree">✓ Sources agree</div>';
+    } else {
+      agr='<div class="agreement disagree">⚠ Sources differ — see both assessments</div>';
+    }
+  }
+
+  return `<div class="src-block"><div class="src-hdr">🎓 Monash University <a href="https://www.monashfodmap.com" target="_blank" rel="noopener">monashfodmap.com</a></div><div class="src-body"><div style="margin-bottom:4px"><span class="badge badge-${f.overall}">${lvlLabel(f.overall)}</span></div>${mRows}${mExtra}</div></div>
+  <div class="src-block"><div class="src-hdr">✅ FODMAP Friendly <a href="https://fodmapfriendly.com" target="_blank" rel="noopener">fodmapfriendly.com</a></div><div class="src-body">${ffBody}</div></div>
+  ${agr}`;
 }
 
-function foodCard(food, cardId, isExpanded, extraClass) {
-  const exp = isExpanded ? ' expanded' : '';
-  const ec  = extraClass ? ` ${extraClass}` : '';
-  const em  = getEmoji(food);
-  return `<div class="food-card${exp}${ec}" data-card="${cardId}">
+function foodCard(food,cardId,isExp,extraCls){
+  const em=getEmoji(food);
+  const exp=isExp?' expanded':'';
+  const ec=extraCls?' '+extraCls:'';
+  return`<div class="food-card${exp}${ec}" data-card="${cardId}">
     <div class="card-header" onclick="toggleCard('${cardId}')">
       <span class="rating-dot dot-${food.overall}"></span>
-      ${em ? `<span class="food-emoji">${em}</span>` : ''}
+      ${em?`<span class="food-emoji">${em}</span>`:''}
       <span class="card-name">${food.name}</span>
-      <span class="badge badge-${food.overall}">${levelLabel(food.overall)}</span>
+      <span class="badge badge-${food.overall}">${lvlLabel(food.overall)}</span>
     </div>
     ${sgChips(food)}
     <div class="card-detail">
-      <div class="card-meta">
-        <span>${catLabel(food.cat)}</span>
-        <span>Serving: ${food.serving}</span>
-      </div>
-      ${fodmapTable(food)}
-      ${food.notes ? `<div class="card-notes">${food.notes}</div>` : ''}
+      <div class="card-meta"><span>${catLabel(food.cat)}</span><span>Serving: ${food.serving}</span></div>
+      ${sourceDetail(food)}
+      ${food.notes?`<div class="card-notes">${food.notes}</div>`:''}
     </div>
   </div>`;
 }
 
-// ═══════════════════════════════════════════════════
-// 6. VIEW RENDERERS
-// ═══════════════════════════════════════════════════
-
-function renderSearch() {
-  const results = searchFoods(state.query);
-  document.getElementById('resultInfo').textContent =
-    state.query
-      ? `${results.length} result${results.length !== 1 ? 's' : ''}`
-      : `${FOODS.length} foods in database`;
-
-  if (!results.length) {
-    document.getElementById('searchResults').innerHTML =
-      `<div class="empty"><div class="empty-icon">🔍</div>
-       <div class="empty-text">No foods found for "${escHtml(state.query)}".<br>Try a different search term.</div></div>`;
-    return;
-  }
-  document.getElementById('searchResults').innerHTML =
-    results.map(f => foodCard(f, f.id, state.expanded === f.id, '')).join('');
+// ── VIEW RENDERERS ──
+function renderSearch(){
+  const res=searchFoods(state.query);
+  document.getElementById('resultInfo').textContent=state.query?`${res.length} result${res.length!==1?'s':''}`:`${FOODS.length} foods · Monash + FODMAP Friendly data`;
+  if(!res.length){document.getElementById('searchResults').innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No foods found for "${escHtml(state.query)}".</div></div>`;return;}
+  document.getElementById('searchResults').innerHTML=res.map(f=>foodCard(f,f.id,state.expanded===f.id,'')).join('');
 }
 
-function renderTriggers() {
-  // Trigger chips
-  document.getElementById('triggerGrid').innerHTML = SG_KEYS.map(k => {
-    const st = state.triggers[k];
-    return `<button class="trig-btn" data-state="${st}" data-sg="${k}" onclick="cycleTrigger('${k}')">
-      <span class="trig-name">${SG[k].name}</span>
-      <span class="trig-category">${SG[k].cat}</span>
-      <span class="trig-state">${STATE_LABELS[st]}</span>
-    </button>`;
-  }).join('');
-
-  // Summary text
-  const prob  = SG_KEYS.filter(k => state.triggers[k] === 'problematic');
-  const safe  = SG_KEYS.filter(k => state.triggers[k] === 'safe');
-  const unk   = SG_KEYS.filter(k => state.triggers[k] === 'unknown');
-  let sumParts = [];
-  if (prob.length)  sumParts.push(`<strong style="color:var(--high-text)">Problematic: ${prob.map(k=>SG[k].name).join(', ')}</strong>`);
-  if (safe.length)  sumParts.push(`<strong style="color:var(--low-text)">Safe: ${safe.map(k=>SG[k].name).join(', ')}</strong>`);
-  if (unk.length)   sumParts.push(`Unknown: ${unk.map(k=>SG[k].name).join(', ')}`);
-  document.getElementById('filterSummary').innerHTML =
-    sumParts.length ? sumParts.join(' &middot; ') : 'No groups marked yet. Tap each group above to set your status.';
-
-  // Categorize foods
-  const probSet = new Set(prob);
-  const safeArr = [], cautionArr = [], unkArr = [];
-
-  FOODS.forEach(f => {
-    const highLevels = sgKeysOfFood(f).filter(k => {
-      const lv = f.fodmaps[k].l;
-      return lv === 'moderate' || lv === 'high';
-    });
-    if (!highLevels.length) { safeArr.push(f); return; }
-    if (highLevels.some(k => probSet.has(k))) { cautionArr.push(f); return; }
-    if (highLevels.some(k => state.triggers[k] === 'unknown')) { unkArr.push(f); return; }
+function renderTriggers(){
+  document.getElementById('triggerGrid').innerHTML=SG_KEYS.map(k=>{const st=state.triggers[k];return`<button class="trig-btn" data-state="${st}" onclick="cycleTrigger('${k}')"><span class="trig-name">${SG[k].name}</span><span class="trig-category">${SG[k].cat}</span><span class="trig-state">${STATE_LBL[st]}</span></button>`;}).join('');
+  const prob=SG_KEYS.filter(k=>state.triggers[k]==='problematic');
+  const safe=SG_KEYS.filter(k=>state.triggers[k]==='safe');
+  const unk=SG_KEYS.filter(k=>state.triggers[k]==='unknown');
+  let sp=[];
+  if(prob.length)sp.push(`<strong style="color:var(--high-text)">Problematic: ${prob.map(k=>SG[k].name).join(', ')}</strong>`);
+  if(safe.length)sp.push(`<strong style="color:var(--low-text)">Safe: ${safe.map(k=>SG[k].name).join(', ')}</strong>`);
+  if(unk.length)sp.push(`Unknown: ${unk.map(k=>SG[k].name).join(', ')}`);
+  document.getElementById('filterSummary').innerHTML=sp.length?sp.join(' &middot; '):'No groups marked yet.';
+  const probSet=new Set(prob);
+  const safeArr=[],cautionArr=[],unkArr=[];
+  FOODS.forEach(f=>{
+    const hl=sgKeysOf(f).filter(k=>{const lv=f.monash.sg[k];return lv==='moderate'||lv==='high';});
+    if(!hl.length){safeArr.push(f);return;}
+    if(hl.some(k=>probSet.has(k))){cautionArr.push(f);return;}
+    if(hl.some(k=>state.triggers[k]==='unknown')){unkArr.push(f);return;}
     safeArr.push(f);
   });
-
-  let html = '';
-
-  if (safeArr.length) {
-    html += `<div class="results-section-hdr" style="color:var(--low)">
-      ✓ Safe for you <span class="rsh-count">${safeArr.length}</span></div>`;
-    html += safeArr.map(f => foodCard(f, 'tr_'+f.id, state.expanded === 'tr_'+f.id, 'safe-mark')).join('');
-  }
-  if (cautionArr.length) {
-    html += `<div class="results-section-hdr" style="color:var(--high)">
-      ✗ Contains your triggers <span class="rsh-count">${cautionArr.length}</span></div>`;
-    html += cautionArr.map(f => foodCard(f, 'tr_'+f.id, state.expanded === 'tr_'+f.id, 'caution')).join('');
-  }
-  if (unkArr.length) {
-    html += `<div class="results-section-hdr" style="color:var(--text-muted)">
-      ? Not yet tested <span class="rsh-count">${unkArr.length}</span></div>`;
-    html += unkArr.map(f => foodCard(f, 'tr_'+f.id, state.expanded === 'tr_'+f.id, '')).join('');
-  }
-
-  if (!html) {
-    html = `<div class="empty"><div class="empty-icon">🏷️</div>
-      <div class="empty-text">Mark your trigger groups above to see filtered food lists.</div></div>`;
-  }
-  document.getElementById('triggersResults').innerHTML = html;
+  let html='';
+  if(safeArr.length){html+=`<div class="results-section-hdr" style="color:var(--low)">✓ Safe for you <span class="rsh-count">${safeArr.length}</span></div>`;html+=safeArr.map(f=>foodCard(f,'tr_'+f.id,state.expanded==='tr_'+f.id,'safe-mark')).join('');}
+  if(cautionArr.length){html+=`<div class="results-section-hdr" style="color:var(--high)">✗ Contains your triggers <span class="rsh-count">${cautionArr.length}</span></div>`;html+=cautionArr.map(f=>foodCard(f,'tr_'+f.id,state.expanded==='tr_'+f.id,'caution')).join('');}
+  if(unkArr.length){html+=`<div class="results-section-hdr" style="color:var(--text-muted)">? Not yet tested <span class="rsh-count">${unkArr.length}</span></div>`;html+=unkArr.map(f=>foodCard(f,'tr_'+f.id,state.expanded==='tr_'+f.id,'')).join('');}
+  document.getElementById('triggersResults').innerHTML=html||`<div class="empty"><div class="empty-icon">🏷️</div><div class="empty-text">Mark your trigger groups above.</div></div>`;
 }
 
-function renderBrowse() {
-  // Group buttons
-  document.getElementById('groupBtns').innerHTML = SG_KEYS.map(k =>
-    `<button class="grp-btn${state.browseGroup===k?' active':''}" onclick="selectGroup('${k}')">
-      ${SG[k].name}<br><small>${SG[k].cat}</small>
-    </button>`
-  ).join('');
-
-  const sg = SG[state.browseGroup];
-  const container = document.getElementById('browseResults');
-
-  const foods = FOODS.filter(f => f.fodmaps[state.browseGroup])
-    .sort((a,b) => {
-      const al = LEVEL_RANK[a.fodmaps[state.browseGroup].l];
-      const bl = LEVEL_RANK[b.fodmaps[state.browseGroup].l];
-      if (bl !== al) return bl - al;
-      return (b.fodmaps[state.browseGroup].g||0) - (a.fodmaps[state.browseGroup].g||0);
-    });
-
-  if (!foods.length) {
-    container.innerHTML = `<div class="empty"><div class="empty-icon">📋</div>
-      <div class="empty-text">No foods in database for ${sg.name}.</div></div>`;
-    return;
-  }
-
-  const byLevel = { high:[], moderate:[], low:[] };
-  foods.forEach(f => byLevel[f.fodmaps[state.browseGroup].l].push(f));
-
-  let html = `<p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">
-    <strong>${foods.length} food${foods.length!==1?'s':''}</strong> contain <strong>${sg.name}</strong> (${sg.cat}), sorted high → low.
-  </p>`;
-
-  ['high','moderate','low'].forEach(level => {
-    if (!byLevel[level].length) return;
-    html += `<div class="level-block">
-      <div class="level-hdr">
-        <span class="badge badge-${level}">${levelLabel(level)}</span>
-        <span class="level-hdr-count">${byLevel[level].length} food${byLevel[level].length!==1?'s':''}</span>
-        <span class="level-hdr-line"></span>
-      </div>`;
-    byLevel[level].forEach(f => {
-      const sd = f.fodmaps[state.browseGroup];
-      const amtTxt = sd.g != null ? `${sd.g}g/100g` : '';
-      const cardId = 'br_' + f.id;
-      const isExp = state.browseExpanded === cardId;
-      const em = getEmoji(f);
-      html += `<div class="browse-card${isExp?' expanded':''}" data-bcard="${cardId}">
-        <div class="card-header" onclick="toggleBrowseCard('${cardId}')">
-          <span class="rating-dot dot-${f.overall}"></span>
-          ${em ? `<span class="food-emoji">${em}</span>` : ''}
-          <span class="card-name">${f.name}</span>
-          ${amtTxt ? `<span style="font-size:.75rem;color:var(--text-muted);margin-right:4px">${amtTxt}</span>` : ''}
-          <span class="badge badge-${sd.l}">${levelLabel(sd.l)}</span>
-        </div>
-        <div class="card-detail">
-          <div class="card-meta">
-            <span>${catLabel(f.cat)}</span>
-            <span>Serving: ${f.serving}</span>
-          </div>
-          ${fodmapTable(f)}
-          ${f.notes ? `<div class="card-notes">${f.notes}</div>` : ''}
-        </div>
-      </div>`;
-    });
-    html += '</div>';
+function renderBrowse(){
+  document.getElementById('groupBtns').innerHTML=SG_KEYS.map(k=>`<button class="grp-btn${state.browseGroup===k?' active':''}" onclick="selectGroup('${k}')">${SG[k].name}<br><small>${SG[k].cat}</small></button>`).join('');
+  const sg=SG[state.browseGroup];
+  const foods=FOODS.filter(f=>f.monash.sg[state.browseGroup]).sort((a,b)=>{
+    const al=LVL_RANK[a.monash.sg[state.browseGroup]]||0,bl=LVL_RANK[b.monash.sg[state.browseGroup]]||0;
+    if(bl!==al)return bl-al;return a.name.localeCompare(b.name);
   });
-
-  container.innerHTML = html;
+  if(!foods.length){document.getElementById('browseResults').innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No foods for ${sg.name}.</div></div>`;return;}
+  const byLvl={high:[],moderate:[],low:[]};
+  foods.forEach(f=>byLvl[f.monash.sg[state.browseGroup]].push(f));
+  let html=`<p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px"><strong>${foods.length}</strong> food${foods.length!==1?'s':''} contain <strong>${sg.name}</strong>, sorted high → low.</p>`;
+  ['high','moderate','low'].forEach(lv=>{
+    if(!byLvl[lv].length)return;
+    html+=`<div class="level-block"><div class="level-hdr"><span class="badge badge-${lv}">${lvlLabel(lv)}</span><span class="level-hdr-count">${byLvl[lv].length}</span><span class="level-hdr-line"></span></div>`;
+    byLvl[lv].forEach(f=>{
+      const cid='br_'+f.id;const isExp=state.browseExpanded===cid;const em=getEmoji(f);
+      html+=`<div class="browse-card${isExp?' expanded':''}" data-bcard="${cid}"><div class="card-header" onclick="toggleBrowseCard('${cid}')"><span class="rating-dot dot-${f.overall}"></span>${em?`<span class="food-emoji">${em}</span>`:''}<span class="card-name">${f.name}</span><span class="badge badge-${f.monash.sg[state.browseGroup]}">${lvlLabel(f.monash.sg[state.browseGroup])}</span></div><div class="card-detail"><div class="card-meta"><span>${catLabel(f.cat)}</span><span>Serving: ${f.serving}</span></div>${sourceDetail(f)}${f.notes?`<div class="card-notes">${f.notes}</div>`:''}</div></div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('browseResults').innerHTML=html;
 }
 
-// ═══════════════════════════════════════════════════
-// 7. ACTIONS
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 6. ACTIONS
+// ═══════════════════════════════════════════════
+function toggleCard(id){state.expanded=state.expanded===id?null:id;const t=document.querySelector('.tab-btn.active').dataset.tab;if(t==='search')renderSearch();else renderTriggers();}
+function toggleBrowseCard(id){state.browseExpanded=state.browseExpanded===id?null:id;renderBrowse();}
+function cycleTrigger(k){const i=CYCLE.indexOf(state.triggers[k]);state.triggers[k]=CYCLE[(i+1)%CYCLE.length];state.expanded=null;saveTriggers();renderTriggers();}
+function selectGroup(k){state.browseGroup=k;state.browseExpanded=null;renderBrowse();}
+function switchTab(tab){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+tab));state.expanded=null;state.browseExpanded=null;if(tab==='search')renderSearch();else if(tab==='triggers')renderTriggers();else renderBrowse();}
 
-function toggleCard(id) {
-  state.expanded = state.expanded === id ? null : id;
-  const tab = activeTab();
-  if (tab === 'search') renderSearch();
-  else renderTriggers();
-}
-
-function toggleBrowseCard(id) {
-  state.browseExpanded = state.browseExpanded === id ? null : id;
-  renderBrowse();
-}
-
-function cycleTrigger(k) {
-  const i = CYCLE.indexOf(state.triggers[k]);
-  state.triggers[k] = CYCLE[(i+1) % CYCLE.length];
-  state.expanded = null;
-  saveTriggers();
-  renderTriggers();
-}
-
-function selectGroup(k) {
-  state.browseGroup = k;
-  state.browseExpanded = null;
-  renderBrowse();
-}
-
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-'+tab));
-  state.expanded = null;
-  state.browseExpanded = null;
-  if (tab === 'search') renderSearch();
-  else if (tab === 'triggers') renderTriggers();
-  else renderBrowse();
-}
-
-function activeTab() {
-  return document.querySelector('.tab-btn.active').dataset.tab;
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ═══════════════════════════════════════════════════
-// 8. WIRE UP EVENTS
-// ═══════════════════════════════════════════════════
-
-document.querySelectorAll('.tab-btn').forEach(b => {
-  b.addEventListener('click', () => switchTab(b.dataset.tab));
-});
-
-let searchTimer;
-document.getElementById('searchInput').addEventListener('input', function() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    state.query = this.value;
-    state.expanded = null;
-    renderSearch();
-  }, 200);
-});
-
-// ═══════════════════════════════════════════════════
-// 9. INIT
-// ═══════════════════════════════════════════════════
-renderSearch();
-renderTriggers();
-renderBrowse();
-
-if (window.innerWidth > 768) {
-  document.getElementById('searchInput').focus();
-}
+// ═══════════════════════════════════════════════
+// 7. WIRE UP & INIT
+// ═══════════════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+let sTimer;
+document.getElementById('searchInput').addEventListener('input',function(){clearTimeout(sTimer);sTimer=setTimeout(()=>{state.query=this.value;state.expanded=null;renderSearch();},200);});
+renderSearch();renderTriggers();renderBrowse();
+if(window.innerWidth>768)document.getElementById('searchInput').focus();
 </script>
 </body>
 </html>
